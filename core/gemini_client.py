@@ -8,7 +8,7 @@ from google.genai import types
 from PIL import Image
 
 import config
-from core.token_tracker import TokenTracker, TokenUsage
+from core.token_tracker import TokenTracker, TokenUsage, TokenLedger
 
 class GeminiService:
     def __init__(self, api_key: Optional[str] = None):
@@ -83,6 +83,14 @@ class GeminiService:
         else:
             usage = TokenTracker.calculate_cost(prompt_tokens=p_tokens, completion_tokens=c_tokens, model=use_model)
 
+        TokenLedger.record_transaction(
+            operation=f"structured_generation ({response_schema.__name__})",
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            model=use_model,
+            details=f"Tokens: {usage.total_tokens} (In: {usage.prompt_tokens}, Out: {usage.completion_tokens})"
+        )
+
         return response.parsed, usage
 
     def generate_structured(
@@ -113,7 +121,7 @@ class GeminiService:
         api_key_override: Optional[str] = None,
         model: Optional[str] = None
     ) -> tuple[str, TokenUsage]:
-        """Genera texto libre enriquecido y retorna tokens consumidos y costo."""
+        """Genera texto libre utilizando Gemini y calcula los tokens consumidos."""
         client = self.get_client(api_key_override)
         use_model = model or config.DEFAULT_TEXT_MODEL
 
@@ -121,25 +129,34 @@ class GeminiService:
             temperature=temperature,
             system_instruction=system_instruction
         )
+
         response = client.models.generate_content(
             model=use_model,
             contents=prompt,
             config=gen_config
         )
-        
-        text_out = response.text or ""
+
         p_tokens = 0
         c_tokens = 0
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             p_tokens = response.usage_metadata.prompt_token_count or 0
             c_tokens = response.usage_metadata.candidates_token_count or 0
 
+        text_result = response.text or ""
         if p_tokens == 0 and c_tokens == 0:
-            usage = TokenTracker.estimate_from_text(prompt, text_out, model=use_model)
+            usage = TokenTracker.estimate_from_text(prompt, text_result, model=use_model)
         else:
             usage = TokenTracker.calculate_cost(prompt_tokens=p_tokens, completion_tokens=c_tokens, model=use_model)
 
-        return text_out, usage
+        TokenLedger.record_transaction(
+            operation="text_generation",
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            model=use_model,
+            details=f"Tokens: {usage.total_tokens}"
+        )
+
+        return text_result, usage
 
     def generate_text(
         self,

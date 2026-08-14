@@ -15,7 +15,7 @@ from core.podcast_engine import PodcastEngine, DirectorPodcast
 from core.visual_engine import VisualEngine
 from core.audio_engine import AudioEngine
 from core.evaluator import CoherenceEvaluator, CoherenceMetrics
-from core.token_tracker import TokenTracker, TokenUsage
+from core.token_tracker import TokenTracker, TokenUsage, TokenLedger
 from core.pdf_exporter import StoryboardPDFExporter
 
 # Configurar logging detallado
@@ -135,6 +135,27 @@ async def get_app_config():
         "pricing": config.MODEL_PRICING,
         "has_env_key": bool(os.environ.get("GEMINI_API_KEY"))
     }
+
+# ----- Token Ledger (Single Source of Truth con Memoria) -----
+
+@app.get("/api/tokens/summary")
+async def get_token_summary():
+    """Retorna los totales consolidados de consumo de tokens y costo en USD desde el libro mayor persistente."""
+    return TokenLedger.get_summary()
+
+@app.get("/api/tokens/history")
+async def get_token_history(limit: int = 50):
+    """Retorna el historial cronológico de transacciones de tokens registradas."""
+    return {
+        "history": TokenLedger.get_history(limit=limit),
+        "totals": TokenLedger.get_summary()
+    }
+
+@app.post("/api/tokens/reset")
+async def reset_token_ledger():
+    """Reinicia el libro mayor de tokens a ceros de manera explícita."""
+    totals = TokenLedger.reset()
+    return {"success": True, "message": "Libro mayor de tokens reiniciado con éxito.", "totals": totals}
 
 # ----- Script Assistant: Premise from Tag Matrix -----
 

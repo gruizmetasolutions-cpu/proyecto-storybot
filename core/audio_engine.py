@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from google.genai import types
 import config
 from core.gemini_client import gemini_service
-from core.token_tracker import TokenTracker, TokenUsage
+from core.token_tracker import TokenTracker, TokenUsage, TokenLedger
 
 class AudioEngine:
     @staticmethod
@@ -44,19 +44,38 @@ class AudioEngine:
         tag_mappings = {
             r'\[susurro\]': '[whispers]',
             r'\[susurrando\]': '[whispers]',
+            r'\[susurro íntimo\]': '[whispers]',
             r'\[pausa\]': '[dramatic pause]',
             r'\[pausa dram[aá]tica\]': '[dramatic pause]',
+            r'\[silencio\]': '[dramatic pause]',
             r'\[respiraci[oó]n\]': '[slow breath]',
+            r'\[respiraci[oó]n profunda\]': '[slow breath]',
             r'\[jadeo\]': '[gasp]',
             r'\[asombro\]': '[gasp]',
+            r'\[susto\]': '[gasp]',
             r'\[risa\]': '[chuckles]',
             r'\[risa sutil\]': '[chuckles]',
+            r'\[risa sarc[aá]stica\]': '[chuckles]',
             r'\[suspiro\]': '[sighs]',
+            r'\[suspiro suave\]': '[soft sigh]',
             r'\[grito urgente\]': '[urgent shout]',
-            r'\[grito\]': '[screams]',
+            r'\[grito\]': '[urgent shout]',
             r'\[ritmo r[aá]pido\]': '[fast cadence]',
+            r'\[cadencia r[aá]pida\]': '[fast cadence]',
             r'\[voz profunda\]': '[deep resonance]',
-            r'\[temblor emotivo\]': '[emotional tremor]'
+            r'\[resonancia profunda\]': '[deep resonance]',
+            r'\[temblor emotivo\]': '[emotional tremor]',
+            r'\[voz quebrada\]': '[emotional tremor]',
+            r'\[tono sint[eé]tico\]': '[cold monotone]',
+            r'\[tono rob[oó]tico\]': '[cold monotone]',
+            r'\[susurro ansioso\]': '[tense whisper]',
+            r'\[susurro tenso\]': '[tense whisper]',
+            r'\[crescendo vocal\]': '[intense crescendo]',
+            r'\[crescendo\]': '[intense crescendo]',
+            r'\[radio t[aá]ctica\]': '[tactical radio]',
+            r'\[intercomunicador\]': '[tactical radio]',
+            r'\[pausa de fatiga\]': '[weary pause]',
+            r'\[pausa cansada\]': '[weary pause]'
         }
         normalized = text
         for pattern, replacement in tag_mappings.items():
@@ -175,6 +194,12 @@ class AudioEngine:
                         break
 
             token_usage = TokenTracker.calculate_cost(audio_chars=text_chars)
+            TokenLedger.record_transaction(
+                operation="synthesize_shot_speech",
+                audio_chars=text_chars,
+                model=config.AUDIO_TTS_MODEL,
+                details=f"Voz: {voice_name} ({text_chars} caracteres)"
+            )
 
             if pcm_bytes:
                 wav_bytes = AudioEngine.pcm_to_wav_bytes(pcm_bytes)
@@ -345,6 +370,12 @@ class AudioEngine:
             updated_shots.append(shot_copy)
 
         token_usage = TokenTracker.calculate_cost(audio_chars=total_chars)
+        TokenLedger.record_transaction(
+            operation="synthesize_master_audio",
+            audio_chars=total_chars,
+            model=config.AUDIO_TTS_MODEL,
+            details=f"Master Audio Track Multi-Hablante ({len(shots)} tomas, {total_duration_sec}s, {total_chars} chars)"
+        )
 
         return {
             "success": True,

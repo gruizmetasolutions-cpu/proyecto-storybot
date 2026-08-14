@@ -5,22 +5,12 @@ from typing import Optional, Dict, Any, List
 # Versiones de modelos de Google Gemini & GenAI (Agosto 2026)
 # Ref: https://ai.google.dev/gemini-api/docs/models
 #
-# Familia Gemini 3.x (estables):
-#   gemini-3.5-flash             - Texto/JSON, estructuración de guion, razonamiento, structured output
-#   gemini-3.6-flash             - Último y más rápido modelo flash
-#   gemini-3.1-pro-preview        - Razonamiento profundo y análisis de directores
-#   gemini-3.1-flash-image        - Generación de imágenes nativa y edición multimodal condicionada
-#   gemini-3.1-flash-lite-image   - Generación ligera de imágenes
-#   gemini-3-pro-image            - Generación de imágenes de alta calidad
-#   gemini-3.1-flash-tts-preview  - Síntesis de voz expresiva (TTS de alta fidelidad, multi-speaker y audio tags)
-#   gemini-3.1-flash-live-preview - Audio en tiempo real / Live API
-#
 DEFAULT_TEXT_MODEL = "gemini-3.5-flash"                 # Texto, structured output JSON, análisis
 DEEP_REASONING_MODEL = "gemini-3.1-pro-preview"         # Razonamiento profundo y análisis complejo
 IMAGE_MODEL = "gemini-3.1-flash-image"                  # Generación nativa de imágenes (response_modalities=IMAGE)
 AUDIO_TTS_MODEL = "gemini-3.1-flash-tts-preview"        # Text-to-Speech multivoz de última generación
 
-# Tabla de Precios para Estimación de Costos (USD por millón de tokens / unidad)
+# Tabla de Precios Oficial de Google Gemini para Estimación Exacta de Costos (USD)
 MODEL_PRICING = {
     "gemini-3.5-flash": {
         "input_per_million": 0.075,      # $0.075 por 1M tokens de entrada
@@ -34,7 +24,7 @@ MODEL_PRICING = {
         "cost_per_image": 0.020,         # $0.020 por imagen generada
     },
     "gemini-3.1-flash-tts-preview": {
-        "cost_per_1k_chars": 0.0005,     # $0.0005 por 1,000 caracteres de voz
+        "cost_per_1k_chars": 0.0005,     # $0.0005 por 1,000 caracteres de voz ($0.50 / 1M chars)
     }
 }
 
@@ -163,7 +153,7 @@ SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
     }
 }
 
-# Catálogo de Etiquetas de Audio Expresivas (Expressive Audio Tags)
+# Catálogo Expandido de Etiquetas de Audio Expresivas (16 Expressive Audio Tags)
 EXPRESSIVE_AUDIO_TAGS: List[Dict[str, str]] = [
     {"tag": "[whispers]", "label": "🤫 Susurro", "description": "Baja la intensidad a un susurro íntimo o tenso"},
     {"tag": "[dramatic pause]", "label": "⏱️ Pausa Dramática", "description": "Inserta un silencio medido de tensión"},
@@ -174,92 +164,144 @@ EXPRESSIVE_AUDIO_TAGS: List[Dict[str, str]] = [
     {"tag": "[urgent shout]", "label": "⚡ Grito Urgente", "description": "Proyección vocal de alerta y acción"},
     {"tag": "[fast cadence]", "label": "🏃‍♂️ Ritmo Rápido", "description": "Acelera la cadencia del habla"},
     {"tag": "[deep resonance]", "label": "🎙️ Voz Profunda", "description": "Resonancia grave y solemne"},
-    {"tag": "[emotional tremor]", "label": "🥺 Temblor Emotivo", "description": "Quiebre de voz por congoja o conmoción"}
+    {"tag": "[emotional tremor]", "label": "🥺 Temblor Emotivo", "description": "Quiebre de voz por congoja o conmoción"},
+    {"tag": "[cold monotone]", "label": "🤖 Tono Sintético", "description": "Voz robótica, fría y calculada sin emoción"},
+    {"tag": "[tense whisper]", "label": "😰 Susurro Ansioso", "description": "Susurro temeroso bajo peligro inminente"},
+    {"tag": "[intense crescendo]", "label": "🔥 Crescendo Vocal", "description": "Aumento progresivo de volumen y pasión"},
+    {"tag": "[soft sigh]", "label": "🥀 Suspiro Suave", "description": "Exhalación delicada y melancólica"},
+    {"tag": "[tactical radio]", "label": "📻 Radio Táctica", "description": "Cadencia militar comprimida de intercomunicador"},
+    {"tag": "[weary pause]", "label": "🚬 Pausa de Fatiga", "description": "Silencio de cansancio existencial y pesadez"}
 ]
 
 # Mapeo de voces para Gemini 3.1 Flash TTS
 VOICE_MAPPINGS: Dict[str, Dict[str, str]] = {
     "elena": {
-        "voice_name": "Aoede",  # Voz femenina sofisticada, cálida y cinematográfica
+        "voice_name": "Aoede",
         "role": "Directora de Fotografía / Personaje Femenino A",
         "description": "Voz femenina articulada, entusiasta y analítica",
         "gender": "female"
     },
     "marcos": {
-        "voice_name": "Puck",   # Voz masculina ágil, curiosa y dinámica
+        "voice_name": "Puck",
         "role": "Guionista / Personaje Masculino B",
         "description": "Voz masculina reflexiva, persuasiva y enérgica",
         "gender": "male"
     },
     "narrator_epic": {
-        "voice_name": "Charon", # Voz grave, pausada y teatral para locución y voice-over
+        "voice_name": "Charon",
         "role": "Narrador Épico Cinematográfico",
         "description": "Voz profunda con presencia dramática de trailer",
         "gender": "male"
     },
     "narrator_tense": {
-        "voice_name": "Fenrir", # Voz áspera, tensa y atmosférica
+        "voice_name": "Fenrir",
         "role": "Narrador de Thriller y Suspenso",
         "description": "Voz grave y misteriosa para drama psicológico",
         "gender": "male"
     },
     "narrator_warm": {
-        "voice_name": "Aoede",  # Voz cálida y humana
+        "voice_name": "Aoede",
         "role": "Narradora Emotiva y Cercana",
         "description": "Voz femenina cálida con gran sensibilidad emocional",
         "gender": "female"
     },
     "narrator_dynamic": {
-        "voice_name": "Kore",   # Voz energética y vibrante
+        "voice_name": "Kore",
         "role": "Narradora de Acción y Aventura",
         "description": "Voz femenina ágil con proyección y energía",
         "gender": "female"
     }
 }
 
-# Presets de Intención y Actuación Vocal para las Historias
+# Presets de Intención y Actuación Vocal para las Historias (11 Presets)
 VOICE_INTENTIONS: Dict[str, Dict[str, str]] = {
     "epic_cinematic": {
         "name": "🎬 Trailer Épico / Impacto Cinematográfico",
+        "category": "Hollywood & Blockbuster",
         "default_voice": "narrator_epic",
         "description": "Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer de Hollywood.",
         "prompt_directive": "epic cinematic trailer voice, deep resonant tone, gravitas, dramatic pauses, powerful intensity, movie trailer narrator style",
-        "audio_tags": ["[dramatic pause]", "[deep breath]", "[whispers with intensity]", "[epic crescendo]"]
+        "audio_tags": ["[dramatic pause]", "[deep resonance]", "[intense crescendo]", "[slow breath]"]
     },
     "tense_thriller": {
         "name": "🕵️ Thriller Tenso / Suspenso Susurrado",
+        "category": "Suspenso & Crimen",
         "default_voice": "narrator_tense",
         "description": "Tono contenido, susurros dramáticos, respiración y tensión psicológica in crescendo.",
         "prompt_directive": "tense psychological thriller narration, whispered intensity, anxious breathing, eerie tone, edge-of-seat pacing",
-        "audio_tags": ["[whispers]", "[anxious breath]", "[gasp]", "[sudden silence]"]
+        "audio_tags": ["[whispers]", "[tense whisper]", "[gasp]", "[dramatic pause]"]
     },
     "emotional_warmth": {
         "name": "❤️ Drama Humano / Cálido y Emotivo",
+        "category": "Drama & Intimidad",
         "default_voice": "narrator_warm",
-        "description": "Cadencia cercana, intimista y conmovedora, con inflexiones de emoción genuina.",
+        "description": "Cadencia cercana, intimista y conmovedora, con inflexiones de emoción genuina y vulnerabilidad.",
         "prompt_directive": "warm empathetic narration, emotional depth, heartfelt and vulnerable storytelling, gentle cadence",
-        "audio_tags": ["[soft sigh]", "[emotional pause]", "[tender whisper]", "[warm smile]"]
+        "audio_tags": ["[soft sigh]", "[emotional tremor]", "[whispers]", "[slow breath]"]
     },
     "noir_detective": {
         "name": "🥃 Film Noir / Detective Cínico",
+        "category": "Suspenso & Crimen",
         "default_voice": "marcos",
-        "description": "Voz áspera de monólogo interior, ritmo pausado de jazz, cinismo urbano y lluvia.",
+        "description": "Voz áspera de monólogo interior, ritmo pausado de jazz, cinismo urbano, lluvia y humo de tabaco.",
         "prompt_directive": "gritty film noir inner monologue, cynical detective tone, dry wit, rhythmic cadence, smokey jazz atmosphere",
-        "audio_tags": ["[cynical chuckle]", "[slow sigh]", "[strikes a match]", "[weary pause]"]
+        "audio_tags": ["[chuckles]", "[weary pause]", "[sighs]", "[slow breath]"]
     },
     "dynamic_action": {
         "name": "⚡ Acción & Adrenalina / Alta Energía",
+        "category": "Hollywood & Blockbuster",
         "default_voice": "narrator_dynamic",
         "description": "Ritmo rápido, urgencia en cada palabra, volumen proyectado y aceleración dramática.",
         "prompt_directive": "high adrenaline action narration, urgent cadence, energetic, intense excitement, fast-paced delivery",
-        "audio_tags": ["[intense shout]", "[heavy breath]", "[fast cadence]", "[urgent warning]"]
+        "audio_tags": ["[urgent shout]", "[fast cadence]", "[intense crescendo]", "[gasp]"]
     },
     "whimsical_fantasy": {
         "name": "✨ Fantasía & Animación / Lúdica",
+        "category": "Fantasía & Aventura",
         "default_voice": "narrator_warm",
-        "description": "Voz colorida, mágica, con cambios divertidos de tono y expresión teatral.",
+        "description": "Voz colorida, mágica, con cambios divertidos de tono, asombro y expresión teatral.",
         "prompt_directive": "whimsical fantasy storyteller, expressive theatrical delivery, lively and enchanting, fairytale wonder",
-        "audio_tags": ["[playful laugh]", "[wondering gasp]", "[mischievous whisper]", "[joyful sparkle]"]
+        "audio_tags": ["[chuckles]", "[gasp]", "[whispers]", "[slow breath]"]
+    },
+    "documentary_natural": {
+        "name": "🎙️ Documental & Ensayo / Neutral y Reflexiva",
+        "category": "Documental & Ensayo",
+        "default_voice": "elena",
+        "description": "Dicción impecable, objetividad serena, ritmo cadencioso de narración de National Geographic o BBC.",
+        "prompt_directive": "prestigious documentary narrator, calm authoritative voice, precise articulation, articulate storytelling",
+        "audio_tags": ["[slow breath]", "[dramatic pause]", "[deep resonance]"]
+    },
+    "cold_synthetic": {
+        "name": "🤖 IA & Androide / Sintética y Calculada",
+        "category": "Ciencia Ficción",
+        "default_voice": "elena",
+        "description": "Voz de inteligencia artificial o androide, fría, sin modulación emotiva, quirúrgica y precisa.",
+        "prompt_directive": "synthetic AI voice, cold calculated monotone, precise pacing, emotionless digital intelligence, HAL 9000 style",
+        "audio_tags": ["[cold monotone]", "[dramatic pause]"]
+    },
+    "gothic_horror": {
+        "name": "🕯️ Terror Gótico / Pánico y Temblor",
+        "category": "Terror & Misterio",
+        "default_voice": "narrator_tense",
+        "description": "Voz quebradiza, susurros temblorosos, respiración agitada y atmósfera de pesadilla gótica.",
+        "prompt_directive": "gothic horror narrator, terrified trembling whispers, shallow panic breathing, dread, sinister folklore",
+        "audio_tags": ["[emotional tremor]", "[tense whisper]", "[gasp]", "[slow breath]"]
+    },
+    "spy_espionage": {
+        "name": "🕶️ Espionaje & Táctica / Susurro Cifrado",
+        "category": "Suspenso & Crimen",
+        "default_voice": "marcos",
+        "description": "Tono profesional de agente encubierto, susurros tácticos por radio y calma bajo fuego.",
+        "prompt_directive": "covert espionage operative, tactical quiet whisper, radio communication cadence, calm under extreme pressure",
+        "audio_tags": ["[tactical radio]", "[tense whisper]", "[fast cadence]", "[dramatic pause]"]
+    },
+    "warrior_valiant": {
+        "name": "⚔️ Épica Medieval / Discurso de Batalla",
+        "category": "Fantasía & Aventura",
+        "default_voice": "narrator_epic",
+        "description": "Voz solemne de comandante, proyección marcial y llamado al heroísmo.",
+        "prompt_directive": "valiant warrior commander, booming battle speech, martial solemnity, heroic inspiration, Lord of the Rings style",
+        "audio_tags": ["[deep resonance]", "[intense crescendo]", "[urgent shout]"]
     }
 }
 
@@ -268,49 +310,122 @@ AUDIO_SAMPLE_RATE = 24000  # 24kHz estándar de Gemini TTS
 AUDIO_CHANNELS = 1         # Mono
 AUDIO_SAMPLE_WIDTH = 2     # 16-bit (2 bytes per sample)
 
-# Presets de Estilo Visual Cinematográfico
+# Catálogo Expandido de Estilos Visuales Cinematográficos (16 Estilos)
 STYLE_PRESETS: Dict[str, Dict[str, str]] = {
-    "cinematic_concept": {
-        "name": "Cinematic Concept Art",
-        "description": "Estilo cinematográfico hiperdetallado, iluminación volumétrica, texturas realistas y profundidad de campo de cámara 35mm.",
-        "prompt_suffix": "cinematic concept art, volumetric lighting, 8k resolution, photorealistic cinematic lighting, atmospheric, depth of field, dramatic composition, mastershot, 35mm lens",
-        "negative_prompt": "cartoon, 3d render, plastic, oversaturated, amateur sketch, watermark, signature, text, blurry"
+    # --- AUTEUR CINEMA (DIRECTORES DE AUTOR) ---
+    "villeneuve_scifi": {
+        "name": "🎬 Denis Villeneuve (Dune / Blade Runner 2049)",
+        "category": "Directores de Autor",
+        "description": "Escalas monumentales brutalistas, paleta ocre/cian desaturada, niebla volumétrica y lentes anamórficas Cooke.",
+        "prompt_suffix": "directed by Denis Villeneuve, cinematography by Roger Deakins, monumental brutalist scale, atmospheric dust haze, desaturated ochre and cyan tones, anamorphic 65mm lens, majestic cinematic lighting, masterpiece",
+        "negative_prompt": "cartoon, oversaturated neon, flat lighting, amateur sketch, 3d render plastic, blurry, watermark"
+    },
+    "wes_anderson": {
+        "name": "🏛️ Wes Anderson (The Grand Budapest Hotel)",
+        "category": "Directores de Autor",
+        "description": "Simetría axial perfecta, composición frontal de casa de muñecas, paleta pastel saturada y texturas artesanales.",
+        "prompt_suffix": "directed by Wes Anderson, perfectly centered symmetrical composition, dollhouse framing, vibrant pastel color palette, whimsical vintage textures, theatrical flat lighting, 35mm film still",
+        "negative_prompt": "dark gritty, Dutch angle, messy asymmetry, harsh shadows, monochrome, horror, cgi"
+    },
+    "del_toro_gothic": {
+        "name": "🕯️ Guillermo del Toro (El Laberinto del Fauno)",
+        "category": "Directores de Autor",
+        "description": "Claroscuro barroco, contraste ámbar cálido y azul cobalto, texturas victorianas orgánicas y misticismo oscuro.",
+        "prompt_suffix": "directed by Guillermo del Toro, dark gothic fairy tale aesthetic, rich amber and cobalt blue chiaroscuro lighting, intricate organic Victorian textures, moody cinematic shadows, 35mm film",
+        "negative_prompt": "bright pastel, clean minimalist, flat lighting, cartoon, oversaturated modern look"
+    },
+    "nolan_imax_70mm": {
+        "name": "🎞️ Christopher Nolan (Oppenheimer / Interstellar 70mm)",
+        "category": "Directores de Autor",
+        "description": "Formato IMAX 70mm de alta resolución, luz natural cruda, grano fotoquímico fino y realismo físico tangible.",
+        "prompt_suffix": "shot on IMAX 70mm film, cinematography by Hoyte van Hoytema, Christopher Nolan direction, naturalistic lighting, razor sharp chemical film grain, authentic physical atmosphere, blockbuster scale",
+        "negative_prompt": "digital CGI plastic look, anime, oversaturated videogame art, cartoon, blurry"
+    },
+    "fincher_clinical": {
+        "name": "🔍 David Fincher (Seven / Mindhunter)",
+        "category": "Directores de Autor",
+        "description": "Iluminación de baja clave con dominante verdosa de tungsteno, encuadres bloqueados con precisión milimétrica.",
+        "prompt_suffix": "directed by David Fincher, cinematography by Jeff Cronenweth, low-key lighting with sickly green-yellow tungsten tint, razor sharp locked-off framing, deep velvety shadows, clinical precision",
+        "negative_prompt": "warm cheerful, soft focus, bright sunlight, pastel colors, cartoon, whimsical"
+    },
+    "wong_kar_wai_neon": {
+        "name": "🏮 Wong Kar-wai (In the Mood for Love)",
+        "category": "Directores de Autor",
+        "description": "Step-printing, desenfoque poético de movimiento, neones esmeralda y rojo rubí, lentes 50mm f/1.2 melancólicas.",
+        "prompt_suffix": "directed by Wong Kar-wai, cinematography by Christopher Doyle, saturated emerald green and ruby red neon hues, poetic motion blur, step-printing aesthetic, nostalgic 1960s Hong Kong cinema, moody shallow depth of field",
+        "negative_prompt": "sterile, crisp clinical CGI, bright flat daylight, 3d cartoon, low quality"
+    },
+
+    # --- ANIMACIÓN & TÉCNICAS DE PRODUCCIÓN ---
+    "studio_ghibli": {
+        "name": "🍃 Studio Ghibli (Hayao Miyazaki Acuarela)",
+        "category": "Animación & Ilustración",
+        "description": "Pintura al agua suave, fondos exuberantes pintados a mano, iluminación cálida y emotiva estilo animación tradicional.",
+        "prompt_suffix": "Studio Ghibli aesthetic, hand-painted watercolor and gouache background, lush natural lighting, soft atmospheric perspective, warm nostalgic color palette, painted by Hayao Miyazaki, anime masterpiece",
+        "negative_prompt": "dark gritty, photoreal 3d, cgi, harsh shadows, monochrome, bad anatomy, text"
+    },
+    "anime_mappa_ufotable": {
+        "name": "⚡ Anime Shōnen Moderno (MAPPA / Ufotable)",
+        "category": "Animación & Ilustración",
+        "description": "Animación de alta producción, líneas de acción dinámicas, cel-shading nítido y efectos de iluminación digital intensa.",
+        "prompt_suffix": "modern high-budget cinematic anime, MAPPA and Ufotable key animation frame, dynamic action lines, crisp cel shading, dramatic particle lighting and chromatic flares, 4k masterpiece",
+        "negative_prompt": "photorealistic, western comic, sketch, low quality, washed out, blurry"
+    },
+    "disney_color_script": {
+        "name": "🎨 Disney / Pixar Color Script (Pastel & Gouache)",
+        "category": "Arte de Preproducción",
+        "description": "Boceto de color conceptual para largometraje animado, iluminación emocional y composición pictórica pura.",
+        "prompt_suffix": "feature animation color script, gouache and oil pastel production painting, emotional lighting design, visual development art, Disney Pixar master artist, expressive brushstrokes",
+        "negative_prompt": "photorealistic live action, 3d render octane, harsh noise, muddy colors"
+    },
+    "stop_motion_laika": {
+        "name": "🧶 Stop-Motion Artesanal (Laika / Coraline)",
+        "category": "Animación & Ilustración",
+        "description": "Texturas táctiles de arcilla, tela en miniatura, madera tallada e iluminación cinematográfica real en estudio.",
+        "prompt_suffix": "handcrafted stop-motion animation puppet, tactile clay and miniature fabric textures, detailed physical set, miniature studio lighting, Laika studio aesthetic, macro depth of field",
+        "negative_prompt": "2d flat drawing, digital CGI render, photoreal human, anime, glossy plastic"
+    },
+    "film_noir_graphic": {
+        "name": "🕶️ Graphic Novel Noir (Sin City / Comic Ink)",
+        "category": "Novela Gráfica & Cómic",
+        "description": "Alto contraste en blanco y negro puro con sombras duras tipo claroscuro y acentos de color selectivo.",
+        "prompt_suffix": "graphic novel ink art style, Frank Miller Sin City aesthetic, extreme black and white chiaroscuro, razor sharp silhouettes, moody atmospheric rain, high contrast comic masterwork",
+        "negative_prompt": "soft pastel, cheerful, flat lighting, 3d render, photoreal, blurry"
     },
     "pencil_sketch": {
-        "name": "Storyboard Pencil Sketch",
-        "description": "Boceto profesional a lápiz y carboncillo de producción cinematográfica, líneas limpias y sombreado rápido de storyboard.",
+        "name": "✏️ Storyboard Tradicional (Lápiz & Carboncillo)",
+        "category": "Arte de Preproducción",
+        "description": "Boceto profesional a lápiz y carboncillo de producción cinematográfica, trazos limpios y valores tonales en escala de grises.",
         "prompt_suffix": "professional movie production storyboard, dynamic charcoal and pencil sketch, clean linework, rough values, high contrast shading, film production art, black and white sketch with subtle gray wash",
         "negative_prompt": "color, photorealistic, 3d render, painting, watercolor, blurry, messy scribble, text"
     },
-    "film_noir": {
-        "name": "Film Noir Graphic Novel",
-        "description": "Alto contraste en blanco y negro, sombras duras tipo claroscuro, estética de novela gráfica estilo Sin City / Batman.",
-        "prompt_suffix": "film noir graphic novel style, extreme chiaroscuro, high contrast black and white, deep shadows, razor sharp silhouettes, moody atmosphere, comic book ink art style, dramatic rim light",
-        "negative_prompt": "color, soft pastel, cheerful, flat lighting, 3d render, photoreal, blurry"
+    "vintage_35mm_portra": {
+        "name": "📷 35mm Analógico Kodak Portra 400 (New Hollywood)",
+        "category": "Cinematografía Clásica",
+        "description": "Fotograma de película analógica de 35mm, grano sutil, tonalidades Kodak Portra y atmósfera cinematográfica de los 70s.",
+        "prompt_suffix": "authentic 35mm film still, Kodak Portra 400 color grading, subtle film grain, natural anamorphic lens distortion, vintage cinema aesthetic, 1970s cinematic lighting, masterpiece",
+        "negative_prompt": "digital CGI, modern video look, cartoon, oversaturated, HDR overly sharpened, 3d render"
     },
-    "studio_ghibli": {
-        "name": "Studio Ghibli Watercolor",
-        "description": "Pintura al agua suave, fondos exuberantes pintados a mano, iluminación cálida y emotiva estilo animación tradicional japonesa.",
-        "prompt_suffix": "Studio Ghibli style, hand-painted watercolor background, lush natural lighting, soft atmospheric perspective, warm nostalgic color palette, master animation background, painted by Hayao Miyazaki",
-        "negative_prompt": "dark gritty, photoreal 3d, cgi, harsh shadows, monochrome, bad anatomy, text"
-    },
-    "unreal_engine_3d": {
-        "name": "Unreal Engine 5 3D Previz",
-        "description": "Previsualización 3D digital de alta fidelidad, iluminación Lumen y Ray Tracing, texturas nítidas de pre-producción.",
+    "unreal_engine_5": {
+        "name": "🎮 Unreal Engine 5 Previz 3D (Lumen & Nanite)",
+        "category": "Previsualización Digital",
+        "description": "Previsualización 3D digital de alta fidelidad, iluminación en tiempo real Lumen y Ray Tracing de preproducción.",
         "prompt_suffix": "Unreal Engine 5 cinematic previsualization, ray tracing, Lumen lighting, 3D render octane render, crisp production model, realistic materials, photorealistic CGI, cinematic camera angle",
         "negative_prompt": "2d drawing, flat, watercolor, messy sketch, cartoon, low poly, noisy, blurry"
     },
-    "anime_shonen": {
-        "name": "Anime / Modern Animation",
-        "description": "Animación japonesa moderna, líneas dinámicas de acción, colores vibrantes e iluminación de alto impacto dramático.",
-        "prompt_suffix": "modern high-budget anime style, Ufotable / MAPPA aesthetic, dynamic action lines, cel shading, vibrant colors, crisp key animation frame, dramatic lens flare, 4k anime masterpiece",
-        "negative_prompt": "photorealistic, western comic, live action, low quality, sketch, washed out"
+    "documentary_16mm": {
+        "name": "🎥 Documental Inmersivo 16mm (Roger Deakins)",
+        "category": "Cinematografía Clásica",
+        "description": "Cámara al hombro inmersiva, luz natural disponible, grano orgánico de 16mm y textura realista sin artificios.",
+        "prompt_suffix": "raw 16mm documentary film still, handheld camera angle, natural available light, organic film grain, authentic gritty realism, cinematic documentary masterpiece",
+        "negative_prompt": "studio glossy lighting, 3d CGI, anime, doll face, oversaturated fantasy"
     },
-    "vintage_35mm": {
-        "name": "Vintage 35mm Film Still",
-        "description": "Fotograma de película analógica de 35mm, grano sutil, tonalidades Kodak Portra y atmósfera cinematográfica clásica.",
-        "prompt_suffix": "authentic 35mm film still, Kodak Portra 400 color grading, subtle film grain, natural anamorphic lens distortion, vintage cinema aesthetic, 1970s 1980s cinematic lighting, masterpiece",
-        "negative_prompt": "digital CGI, modern video look, cartoon, oversaturated, HDR overly sharpened, 3d render"
+    "cinematic_concept": {
+        "name": "✨ Concept Art Cinematográfico Blockbuster 8K",
+        "category": "Arte de Preproducción",
+        "description": "Estilo cinematográfico hiperdetallado, iluminación volumétrica, texturas realistas y profundidad de campo de cámara 35mm.",
+        "prompt_suffix": "cinematic concept art, volumetric lighting, 8k resolution, photorealistic cinematic lighting, atmospheric, depth of field, dramatic composition, mastershot, 35mm lens",
+        "negative_prompt": "cartoon, 3d render, plastic, oversaturated, amateur sketch, watermark, signature, text, blurry"
     }
 }
 

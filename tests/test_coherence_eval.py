@@ -251,5 +251,109 @@ class TestCoherenceAndSequentialHarness(unittest.TestCase):
         self.assertEqual(updated_shots[2]["timecode_start_sec"], updated_shots[1]["timecode_end_sec"])
         self.assertAlmostEqual(updated_shots[2]["timecode_end_sec"], res["master_duration_sec"], delta=0.2)
 
+    def test_expanded_visual_styles_catalog(self):
+        """Valida que el catálogo expandido cuente con 16 estilos cinematográficos completos y categorizados."""
+        styles = config.STYLE_PRESETS
+        self.assertGreaterEqual(len(styles), 16)
+        
+        # Verificar directores de autor
+        self.assertIn("villeneuve_scifi", styles)
+        self.assertIn("wes_anderson", styles)
+        self.assertIn("del_toro_gothic", styles)
+        self.assertIn("nolan_imax_70mm", styles)
+        self.assertIn("fincher_clinical", styles)
+        self.assertIn("wong_kar_wai_neon", styles)
+        
+        # Verificar animación y fotoquímica
+        self.assertIn("studio_ghibli", styles)
+        self.assertIn("anime_mappa_ufotable", styles)
+        self.assertIn("stop_motion_laika", styles)
+        self.assertIn("vintage_35mm_portra", styles)
+        self.assertIn("unreal_engine_5", styles)
+        self.assertIn("documentary_16mm", styles)
+
+        for key, info in styles.items():
+            self.assertIn("name", info)
+            self.assertIn("category", info)
+            self.assertIn("prompt_suffix", info)
+            self.assertIn("negative_prompt", info)
+            self.assertTrue(len(info["prompt_suffix"]) > 20)
+
+    def test_expanded_voice_intentions_and_audio_tags(self):
+        """Valida que existan 11 presets de intención vocal y 16 audio tags expresivos."""
+        intentions = config.VOICE_INTENTIONS
+        self.assertGreaterEqual(len(intentions), 11)
+        self.assertIn("epic_cinematic", intentions)
+        self.assertIn("tense_thriller", intentions)
+        self.assertIn("noir_detective", intentions)
+        self.assertIn("spy_espionage", intentions)
+        self.assertIn("cold_synthetic", intentions)
+        self.assertIn("gothic_horror", intentions)
+        self.assertIn("warrior_valiant", intentions)
+
+        tags = config.EXPRESSIVE_AUDIO_TAGS
+        self.assertGreaterEqual(len(tags), 16)
+        tag_names = [t["tag"] for t in tags]
+        self.assertIn("[whispers]", tag_names)
+        self.assertIn("[dramatic pause]", tag_names)
+        self.assertIn("[emotional tremor]", tag_names)
+        self.assertIn("[cold monotone]", tag_names)
+        self.assertIn("[tense whisper]", tag_names)
+        self.assertIn("[tactical radio]", tag_names)
+
+    def test_token_ledger_persistence_and_single_source_of_truth(self):
+        """Valida que TokenLedger actúe como Single Source of Truth, persista en disco y mantenga el histórico."""
+        from core.token_tracker import TokenLedger
+        
+        # Reset inicial para prueba controlada
+        TokenLedger.reset()
+        initial_summary = TokenLedger.get_summary()
+        self.assertEqual(initial_summary["total_tokens"], 0)
+        self.assertEqual(initial_summary["estimated_cost_usd"], 0.0)
+
+        # Registrar transacción 1: Generación de guion
+        tx1 = TokenLedger.record_transaction(
+            operation="test_script_generation",
+            prompt_tokens=10_000,
+            completion_tokens=5_000,
+            model=config.DEFAULT_TEXT_MODEL,
+            details="Guion de prueba 1"
+        )
+        self.assertIsNotNone(tx1.id)
+        self.assertGreater(tx1.cost_usd, 0.0)
+
+        # Registrar transacción 2: Imagen
+        tx2 = TokenLedger.record_transaction(
+            operation="test_render_image",
+            images_count=3,
+            model=config.IMAGE_MODEL,
+            details="3 paneles de prueba"
+        )
+        self.assertEqual(tx2.images_count, 3)
+
+        # Registrar transacción 3: Master Audio
+        tx3 = TokenLedger.record_transaction(
+            operation="test_synthesize_audio",
+            audio_chars=4000,
+            model=config.AUDIO_TTS_MODEL,
+            details="Audio continuo de prueba"
+        )
+        self.assertEqual(tx3.audio_chars, 4000)
+
+        # Validar acumulados globales en el libro mayor
+        summary = TokenLedger.get_summary()
+        self.assertEqual(summary["prompt_tokens"], 10_000)
+        self.assertEqual(summary["completion_tokens"], 5_000)
+        self.assertEqual(summary["total_tokens"], 15_000)
+        self.assertEqual(summary["images_generated"], 3)
+        self.assertEqual(summary["audio_chars_synthesized"], 4000)
+        self.assertEqual(summary["total_transactions"], 3)
+        self.assertGreater(summary["estimated_cost_usd"], 0.06)
+
+        # Validar historial
+        history = TokenLedger.get_history(limit=10)
+        self.assertGreaterEqual(len(history), 3)
+        self.assertEqual(history[0]["operation"], "test_synthesize_audio")
+
 if __name__ == '__main__':
     unittest.main()

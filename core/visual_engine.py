@@ -5,7 +5,7 @@ from PIL import Image
 
 import config
 from core.gemini_client import gemini_service
-from core.token_tracker import TokenTracker, TokenUsage
+from core.token_tracker import TokenTracker, TokenUsage, TokenLedger
 
 class VisualEngine:
     @staticmethod
@@ -48,6 +48,12 @@ class VisualEngine:
                 api_key_override=api_key_override
             )
             token_usage = TokenTracker.calculate_cost(images_count=1)
+            TokenLedger.record_transaction(
+                operation="render_character_anchor",
+                images_count=1,
+                model=config.IMAGE_MODEL,
+                details=f"Estilo: {style_info['name']}"
+            )
 
             if img_bytes:
                 mime = "image/png" if img_bytes[:4] == b'\x89PNG' else "image/jpeg"
@@ -128,6 +134,12 @@ class VisualEngine:
                 api_key_override=api_key_override
             )
             token_usage = TokenTracker.calculate_cost(images_count=1)
+            TokenLedger.record_transaction(
+                operation="render_shot_panel",
+                images_count=1,
+                model=config.IMAGE_MODEL,
+                details=f"Prompt: {visual_prompt[:60]}... ({style_info['name']})"
+            )
 
             if image_bytes:
                 mime = "image/png" if image_bytes[:4] == b'\x89PNG' else "image/jpeg"

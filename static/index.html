@@ -33,8 +33,8 @@
       </div>
 
       <div class="header-actions">
-        <!-- TOKEN & COST COUNTER BADGE -->
-        <div id="tokenCostBadge" class="token-cost-badge" title="Tokens consumidos y costo estimado en USD">
+        <!-- TOKEN & COST COUNTER BADGE (CLICKABLE SINGLE SOURCE OF TRUTH) -->
+        <div id="tokenCostBadge" class="token-cost-badge clickable" onclick="openTokenAuditModal()" title="Libro Mayor de Tokens y Costos (Clic para ver auditoría detallada)">
           <span class="token-icon">🪙</span>
           <span id="tokenCountText">0 Tokens</span>
           <span class="token-sep">•</span>
@@ -164,18 +164,25 @@
           <div class="audio-tags-toolbar">
             <div class="audio-tags-header">
               <span class="audio-tags-label">🏷️ Insertar Audio Tags Expresivos:</span>
-              <span class="audio-tags-hint">Controla emociones, susurros y pausas</span>
+              <span class="audio-tags-hint">16 etiquetas de actuación vocal nativa</span>
             </div>
             <div class="audio-tags-chips">
               <button type="button" class="tag-chip" onclick="insertAudioTag('[whispers]')" title="Susurro íntimo o tenso">🤫 [whispers]</button>
               <button type="button" class="tag-chip" onclick="insertAudioTag('[dramatic pause]')" title="Pausa dramática de tensión">⏱️ [dramatic pause]</button>
-              <button type="button" class="tag-chip" onclick="insertAudioTag('[slow breath]')" title="Respiración audible">😮‍💨 [slow breath]</button>
-              <button type="button" class="tag-chip" onclick="insertAudioTag('[gasp]')" title="Asombro o sorpresa súbita">😱 [gasp]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[slow breath]')" title="Respiración audible profunda">😮‍💨 [slow breath]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[gasp]')" title="Jadeo / Asombro o susto súbito">😱 [gasp]</button>
               <button type="button" class="tag-chip" onclick="insertAudioTag('[chuckles]')" title="Risa sarcástica o sutil">😏 [chuckles]</button>
               <button type="button" class="tag-chip" onclick="insertAudioTag('[sighs]')" title="Suspiro de alivio o pesadez">😔 [sighs]</button>
               <button type="button" class="tag-chip" onclick="insertAudioTag('[urgent shout]')" title="Grito de alerta o acción">⚡ [urgent shout]</button>
-              <button type="button" class="tag-chip" onclick="insertAudioTag('[fast cadence]')" title="Cadencia rápida">🏃 [fast cadence]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[fast cadence]')" title="Cadencia rápida y urgente">🏃 [fast cadence]</button>
               <button type="button" class="tag-chip" onclick="insertAudioTag('[deep resonance]')" title="Voz profunda y solemne">🎙️ [deep resonance]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[emotional tremor]')" title="Quiebre emotivo de voz">🥺 [emotional tremor]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[cold monotone]')" title="Tono robótico / sintético">🤖 [cold monotone]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[tense whisper]')" title="Susurro ansioso bajo peligro">😰 [tense whisper]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[intense crescendo]')" title="Aumento de volumen y pasión">🔥 [intense crescendo]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[soft sigh]')" title="Exhalación suave y melancólica">🥀 [soft sigh]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[tactical radio]')" title="Voz táctica de intercomunicador">📻 [tactical radio]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[weary pause]')" title="Pausa de fatiga existencial">🚬 [weary pause]</button>
             </div>
           </div>
         </div>
@@ -264,18 +271,38 @@
 
         <!-- 5. ESTILOS VISUALES CINEMATOGRÁFICOS -->
         <div class="control-group">
-          <label for="stylePresetSelect">Estilo Visual Cinematográfico</label>
+          <div class="control-label-row">
+            <label for="stylePresetSelect">Estilo Visual Cinematográfico</label>
+            <span class="badge-pill-tts">16 Estilos</span>
+          </div>
           <select id="stylePresetSelect" class="custom-select" onchange="onStyleChange(this.value)">
-            <option value="cinematic_concept">🎬 Cinematic Concept Art (35mm / 8k)</option>
-            <option value="pencil_sketch">✏️ Storyboard Pencil & Charcoal Sketch</option>
-            <option value="film_noir">🕵️ Film Noir Graphic Novel (B&W Chiaroscuro)</option>
-            <option value="studio_ghibli">🎨 Studio Ghibli Hand-Painted Watercolor</option>
-            <option value="unreal_engine_3d">🕹️ Unreal Engine 5 3D Previsualization</option>
-            <option value="anime_shonen">⚡ Modern Anime / Key Animation Frame</option>
-            <option value="vintage_35mm">🎞️ Vintage 35mm Film Still (Kodak Portra)</option>
+            <optgroup label="🎬 Directores de Autor (Auteur Cinema)">
+              <option value="villeneuve_scifi" selected>🎬 Denis Villeneuve (Dune / Blade Runner 2049)</option>
+              <option value="wes_anderson">🏛️ Wes Anderson (The Grand Budapest Hotel)</option>
+              <option value="del_toro_gothic">🕯️ Guillermo del Toro (El Laberinto del Fauno)</option>
+              <option value="nolan_imax_70mm">🎞️ Christopher Nolan (Oppenheimer / Interstellar 70mm)</option>
+              <option value="fincher_clinical">🔍 David Fincher (Seven / Mindhunter)</option>
+              <option value="wong_kar_wai_neon">🏮 Wong Kar-wai (In the Mood for Love)</option>
+            </optgroup>
+            <optgroup label="🎨 Animación & Ilustración">
+              <option value="studio_ghibli">🍃 Studio Ghibli (Hayao Miyazaki Acuarela)</option>
+              <option value="anime_mappa_ufotable">⚡ Anime Shōnen Moderno (MAPPA / Ufotable)</option>
+              <option value="stop_motion_laika">🧶 Stop-Motion Artesanal (Laika / Coraline)</option>
+              <option value="film_noir_graphic">🕶️ Graphic Novel Noir (Sin City / Ink)</option>
+            </optgroup>
+            <optgroup label="📐 Arte de Preproducción & Previz">
+              <option value="cinematic_concept">✨ Concept Art Blockbuster 8K</option>
+              <option value="disney_color_script">🎨 Disney / Pixar Color Script (Pastel)</option>
+              <option value="pencil_sketch">✏️ Storyboard Tradicional (Lápiz & Carboncillo)</option>
+              <option value="unreal_engine_5">🎮 Unreal Engine 5 Previz 3D (Lumen)</option>
+            </optgroup>
+            <optgroup label="🎞️ Cinematografía & Fotoquímica">
+              <option value="vintage_35mm_portra">📷 35mm Kodak Portra 400 (New Hollywood)</option>
+              <option value="documentary_16mm">🎥 Documental Inmersivo 16mm (Roger Deakins)</option>
+            </optgroup>
           </select>
           <p id="styleDescription" class="style-description-hint">
-            Estilo cinematográfico hiperdetallado con iluminación volumétrica y lentes 35mm.
+            Escalas monumentales brutalistas, paleta ocre/cian desaturada, niebla volumétrica y lentes anamórficas Cooke.
           </p>
         </div>
 
@@ -283,18 +310,31 @@
         <div class="control-group">
           <div class="control-label-row">
             <label for="voiceIntentionSelect">🎭 Actuación Vocal & Audio Tags</label>
-            <span class="badge-pill-tts">TTS 3.1</span>
+            <span class="badge-pill-tts">11 Presets TTS</span>
           </div>
           <select id="voiceIntentionSelect" class="custom-select" onchange="onVoiceIntentionChange(this.value)">
-            <option value="epic_cinematic">🎬 Trailer Épico / Impacto Cinematográfico (Charon)</option>
-            <option value="tense_thriller">🕵️ Thriller Tenso / Suspenso Susurrado (Fenrir)</option>
-            <option value="emotional_warmth">❤️ Drama Humano / Cálido y Emotivo (Aoede)</option>
-            <option value="noir_detective">🥃 Film Noir / Detective Cínico (Puck)</option>
-            <option value="dynamic_action">⚡ Acción & Adrenalina / Alta Energía (Kore)</option>
-            <option value="whimsical_fantasy">✨ Fantasía & Animación / Lúdica (Aoede)</option>
+            <optgroup label="🎬 Hollywood & Blockbuster">
+              <option value="epic_cinematic" selected>🎬 Trailer Épico / Impacto Cinematográfico (Charon)</option>
+              <option value="dynamic_action">⚡ Acción & Adrenalina / Alta Energía (Kore)</option>
+            </optgroup>
+            <optgroup label="🕵️ Suspenso & Crimen">
+              <option value="tense_thriller">🕵️ Thriller Tenso / Suspenso Susurrado (Fenrir)</option>
+              <option value="noir_detective">🥃 Film Noir / Detective Cínico (Puck)</option>
+              <option value="spy_espionage">🕶️ Espionaje & Táctica / Susurro Cifrado (Puck)</option>
+            </optgroup>
+            <optgroup label="🎭 Drama, Intimidad & Terror">
+              <option value="emotional_warmth">❤️ Drama Humano / Cálido y Emotivo (Aoede)</option>
+              <option value="gothic_horror">🕯️ Terror Gótico / Pánico y Temblor (Fenrir)</option>
+            </optgroup>
+            <optgroup label="✨ Fantasía, Sci-Fi & Documental">
+              <option value="whimsical_fantasy">✨ Fantasía & Animación / Lúdica (Aoede)</option>
+              <option value="warrior_valiant">⚔️ Épica Medieval / Discurso de Batalla (Charon)</option>
+              <option value="cold_synthetic">🤖 IA & Androide / Sintética y Calculada (Aoede)</option>
+              <option value="documentary_natural">🎙️ Documental & Ensayo / Neutral y Reflexiva (Aoede)</option>
+            </optgroup>
           </select>
           <p id="voiceIntentionDescription" class="style-description-hint">
-            Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer.
+            Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer de Hollywood.
           </p>
         </div>
 
@@ -678,6 +718,84 @@
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="closeCoherenceModal()">Cerrar</button>
           <button class="btn btn-primary" onclick="runCoherenceAudit()">⚡ Re-evaluar Coherencia</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOKEN LEDGER & COST AUDIT MODAL (SINGLE SOURCE OF TRUTH) -->
+    <div id="tokenAuditModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="tokenAuditTitle">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <span class="modal-icon">🪙</span>
+            <div>
+              <h3 id="tokenAuditTitle">Libro Mayor de Tokens y Costos (Single Source of Truth)</h3>
+              <p class="modal-subtitle">Registro contable inmutable con persistencia en disco (data/token_ledger.json)</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" aria-label="Cerrar modal de auditoría de tokens" onclick="closeTokenAuditModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- TARJETAS DE TOTALES ACUMULADOS -->
+          <div class="ledger-metrics-grid">
+            <div class="ledger-metric-card primary">
+              <span class="metric-label">Costo Total Acumulado</span>
+              <span id="ledgerCostTotal" class="metric-value-large">$0.0000 USD</span>
+              <span class="metric-sub">Tarifas oficiales Google Gemini</span>
+            </div>
+            <div class="ledger-metric-card">
+              <span class="metric-label">Tokens de Texto</span>
+              <span id="ledgerTokensTotal" class="metric-value">0</span>
+              <span class="metric-sub"><span id="ledgerPromptTokens">0</span> In • <span id="ledgerComplTokens">0</span> Out</span>
+            </div>
+            <div class="ledger-metric-card">
+              <span class="metric-label">Imágenes Generadas</span>
+              <span id="ledgerImagesTotal" class="metric-value">0</span>
+              <span class="metric-sub">$0.020 / imagen</span>
+            </div>
+            <div class="ledger-metric-card">
+              <span class="metric-label">Audio TTS Sintetizado</span>
+              <span id="ledgerAudioCharsTotal" class="metric-value">0 caracteres</span>
+              <span class="metric-sub">$0.0005 / 1k caracteres</span>
+            </div>
+          </div>
+
+          <!-- TABLA DE HISTORIAL DE TRANSACCIONES -->
+          <div class="ledger-history-container">
+            <div class="ledger-history-header">
+              <h4>📜 Historial de Operaciones Registradas</h4>
+              <span id="ledgerTxCount" class="badge-tag">0 transacciones</span>
+            </div>
+            <div class="ledger-table-wrapper">
+              <table class="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora (UTC)</th>
+                    <th>Operación</th>
+                    <th>Modelo</th>
+                    <th>Consumo</th>
+                    <th>Costo USD</th>
+                  </tr>
+                </thead>
+                <tbody id="ledgerHistoryTableBody">
+                  <tr>
+                    <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">
+                      No hay transacciones registradas aún.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-danger-outline" onclick="confirmResetTokenLedger()">🗑️ Reiniciar Contador</button>
+          <div class="modal-footer-right">
+            <button class="btn btn-secondary" onclick="fetchTokenSummaryFromBackend(true)">🔄 Actualizar</button>
+            <button class="btn btn-primary" onclick="closeTokenAuditModal()">Entendido</button>
+          </div>
         </div>
       </div>
     </div>

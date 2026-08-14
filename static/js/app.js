@@ -32,7 +32,7 @@ const PROMPT_PRESETS = {
 function initApp() {
   setupRatioSelector();
   updateCreativityLabel(50);
-  updateTokenBadges();
+  fetchTokenSummaryFromBackend();
 }
 
 function setupRatioSelector() {
@@ -145,26 +145,41 @@ function insertAudioTag(tag) {
 function onStyleChange(styleKey) {
   selectedStyleKey = styleKey;
   const descriptions = {
-    cinematic_concept: "Estilo cinematográfico hiperdetallado con iluminación volumétrica y lentes 35mm.",
+    villeneuve_scifi: "Escalas monumentales brutalistas, paleta ocre/cian desaturada, niebla volumétrica y lentes anamórficas Cooke.",
+    wes_anderson: "Simetría axial perfecta, composición frontal teatral, paleta pastel saturada y texturas artesanales.",
+    del_toro_gothic: "Claroscuro barroco, contraste ámbar cálido y azul cobalto, texturas victorianas orgánicas.",
+    nolan_imax_70mm: "Formato IMAX 70mm, iluminación natural cruda, grano fotoquímico fino y realismo tangible.",
+    fincher_clinical: "Iluminación de baja clave con dominante verdosa de tungsteno y encuadres milimétricos.",
+    wong_kar_wai_neon: "Step-printing, desenfoque poético de movimiento, neones verde esmeralda y lentes 50mm f/1.2.",
+    studio_ghibli: "Pintura al agua suave, fondos exuberantes pintados a mano y atmósfera nostálgica de Hayao Miyazaki.",
+    anime_mappa_ufotable: "Animación dinámica de alto presupuesto, líneas de acción nítidas y efectos de iluminación digital.",
+    stop_motion_laika: "Texturas táctiles de arcilla, tela en miniatura, madera tallada e iluminación cinematográfica en estudio.",
+    film_noir_graphic: "Alto contraste en blanco y negro puro con sombras duras claroscuro estilo Sin City.",
+    cinematic_concept: "Estilo cinematográfico blockbuster hiperdetallado con iluminación volumétrica y lentes 35mm.",
+    disney_color_script: "Boceto de color conceptual para largometraje animado en pastel al óleo y gouache.",
     pencil_sketch: "Boceto profesional a lápiz y carboncillo de producción cinematográfica con alto contraste.",
-    film_noir: "Blanco y negro con sombras duras claroscuro estilo novela gráfica clásica.",
-    studio_ghibli: "Pintura al agua suave, fondos exuberantes y atmósfera emotiva pintada a mano.",
-    unreal_engine_3d: "Previsualización 3D digital nítida con iluminación Lumen y Ray Tracing.",
-    anime_shonen: "Animación dinámica de alto presupuesto con líneas de acción y colores vibrantes.",
-    vintage_35mm: "Fotograma de película analógica 35mm con grano sutil y paleta Kodak Portra."
+    unreal_engine_5: "Previsualización 3D digital nítida con iluminación Lumen en tiempo real y Ray Tracing.",
+    vintage_35mm_portra: "Fotograma de película analógica 35mm con grano sutil y paleta Kodak Portra 400.",
+    documentary_16mm: "Cámara al hombro inmersiva, luz natural disponible y grano orgánico de película 16mm."
   };
-  document.getElementById('styleDescription').textContent = descriptions[styleKey] || '';
+  const descEl = document.getElementById('styleDescription');
+  if (descEl) descEl.textContent = descriptions[styleKey] || '';
 }
 
 function onVoiceIntentionChange(intentionKey) {
   selectedVoiceIntention = intentionKey;
   const descriptions = {
-    epic_cinematic: "Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer.",
-    tense_thriller: "Tono contenido, susurros dramáticos, respiración y tensión psicológica in crescendo.",
-    emotional_warmth: "Cadencia cercana, intimista y conmovedora, con inflexiones de emoción genuina.",
-    noir_detective: "Voz áspera de monólogo interior, ritmo pausado de jazz y cinismo urbano.",
+    epic_cinematic: "Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer de Hollywood.",
     dynamic_action: "Ritmo rápido, urgencia en cada palabra, volumen proyectado y aceleración dramática.",
-    whimsical_fantasy: "Voz colorida, mágica, con cambios divertidos de tono y expresión teatral."
+    tense_thriller: "Tono contenido, susurros dramáticos, respiración y tensión psicológica in crescendo.",
+    noir_detective: "Voz áspera de monólogo interior, ritmo pausado de jazz, cinismo urbano y lluvia nocturna.",
+    spy_espionage: "Tono profesional de agente encubierto, susurros tácticos por radio y calma bajo fuego.",
+    emotional_warmth: "Cadencia cercana, intimista y conmovedora, con vulnerabilidad y calidez humana.",
+    gothic_horror: "Voz quebradiza, susurros temblorosos, respiración agitada y atmósfera de terror gótico.",
+    whimsical_fantasy: "Voz colorida, mágica, con cambios expresivos de tono, asombro y teatralidad de cuento.",
+    warrior_valiant: "Voz solemne de comandante, proyección marcial y llamado al heroísmo en batalla.",
+    cold_synthetic: "Voz sintética de inteligencia artificial, quirúrgica, fría y calculada sin emoción.",
+    documentary_natural: "Dicción impecable, objetividad serena y ritmo cadencioso de narrador de documental."
   };
   const descEl = document.getElementById('voiceIntentionDescription');
   if (descEl) descEl.textContent = descriptions[intentionKey] || '';
@@ -186,27 +201,132 @@ function switchTab(tabId) {
   }
 }
 
-// GESTIÓN DE TOKENS Y COSTOS
-function recordTokenUsage(usage) {
-  if (!usage) return;
-  totalAccumulatedTokens += (usage.total_tokens || 0);
-  totalAccumulatedCostUSD += (usage.estimated_cost_usd || 0.0);
-  updateTokenBadges();
+// ==========================================================================
+// GESTIÓN DE TOKENS Y COSTOS (SINGLE SOURCE OF TRUTH CON MEMORIA EN DISCO)
+// ==========================================================================
+
+async function fetchTokenSummaryFromBackend(showFeedbackToast = false) {
+  try {
+    const res = await fetch('/api/tokens/summary');
+    if (!res.ok) return;
+    const totals = await res.json();
+
+    totalAccumulatedTokens = totals.total_tokens || 0;
+    totalAccumulatedCostUSD = totals.estimated_cost_usd || 0.0;
+
+    updateTokenBadges(totals);
+
+    if (showFeedbackToast) {
+      showToast("Libro mayor de tokens actualizado desde el backend.", "success");
+    }
+  } catch (err) {
+    console.warn("No se pudo sincronizar el resumen de tokens con el backend:", err);
+  }
 }
 
-function updateTokenBadges() {
+function recordTokenUsage(usage) {
+  // Sincronizar inmediatamente con la fuente única de verdad del backend
+  fetchTokenSummaryFromBackend();
+}
+
+function updateTokenBadges(totals = null) {
   const countText = document.getElementById('tokenCountText');
   const costText = document.getElementById('costValueText');
   const metaCostPill = document.getElementById('metaCostPill');
 
-  const formattedTokens = totalAccumulatedTokens.toLocaleString();
-  const formattedCost = totalAccumulatedCostUSD < 0.01 
-    ? `$${totalAccumulatedCostUSD.toFixed(4)} USD` 
-    : `$${totalAccumulatedCostUSD.toFixed(2)} USD`;
+  const tokens = totals ? totals.total_tokens : totalAccumulatedTokens;
+  const costUSD = totals ? totals.estimated_cost_usd : totalAccumulatedCostUSD;
+  const formattedCost = totals ? totals.formatted_cost : (costUSD < 0.01 ? `$${costUSD.toFixed(4)} USD` : `$${costUSD.toFixed(2)} USD`);
 
-  if (countText) countText.textContent = `${formattedTokens} Tokens`;
+  if (countText) countText.textContent = `${tokens.toLocaleString()} Tokens`;
   if (costText) costText.textContent = formattedCost;
   if (metaCostPill) metaCostPill.textContent = `🪙 Costo Est: ${formattedCost}`;
+}
+
+// MODAL DE AUDITORÍA FINANCIERA DE TOKENS
+async function openTokenAuditModal() {
+  const modal = document.getElementById('tokenAuditModal');
+  if (!modal) return;
+
+  try {
+    const res = await fetch('/api/tokens/history?limit=50');
+    if (res.ok) {
+      const data = await res.json();
+      const totals = data.totals || {};
+      const history = data.history || [];
+
+      document.getElementById('ledgerCostTotal').textContent = totals.formatted_cost || '$0.0000 USD';
+      document.getElementById('ledgerTokensTotal').textContent = (totals.total_tokens || 0).toLocaleString();
+      document.getElementById('ledgerPromptTokens').textContent = (totals.prompt_tokens || 0).toLocaleString();
+      document.getElementById('ledgerComplTokens').textContent = (totals.completion_tokens || 0).toLocaleString();
+      document.getElementById('ledgerImagesTotal').textContent = `${totals.images_generated || 0} imágenes`;
+      document.getElementById('ledgerAudioCharsTotal').textContent = `${(totals.audio_chars_synthesized || 0).toLocaleString()} caracteres`;
+      document.getElementById('ledgerTxCount').textContent = `${history.length} transacciones recientes`;
+
+      const tbody = document.getElementById('ledgerHistoryTableBody');
+      if (tbody) {
+        if (history.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">
+                No hay transacciones registradas aún en el libro mayor.
+              </td>
+            </tr>
+          `;
+        } else {
+          tbody.innerHTML = history.map(tx => `
+            <tr>
+              <td style="font-family: monospace; font-size: 11px;">${tx.timestamp || '--'}</td>
+              <td><strong>${escapeHtml(tx.operation || 'Operación')}</strong></td>
+              <td><span class="badge-tag">${escapeHtml(tx.model || 'Gemini')}</span></td>
+              <td>${formatTxConsumption(tx)}</td>
+              <td style="color: #34d399; font-weight: 700;">${tx.formatted_cost || '$0.0000 USD'}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error abriendo auditoría de tokens:", err);
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function formatTxConsumption(tx) {
+  const parts = [];
+  if (tx.prompt_tokens > 0 || tx.completion_tokens > 0) {
+    parts.push(`${(tx.prompt_tokens + tx.completion_tokens).toLocaleString()} tk`);
+  }
+  if (tx.images_count > 0) {
+    parts.push(`${tx.images_count} img`);
+  }
+  if (tx.audio_chars > 0) {
+    parts.push(`${tx.audio_chars.toLocaleString()} chars`);
+  }
+  return parts.join(' • ') || (tx.details ? escapeHtml(tx.details) : '1 llamada');
+}
+
+function closeTokenAuditModal() {
+  const modal = document.getElementById('tokenAuditModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function confirmResetTokenLedger() {
+  if (!confirm("⚠️ ¿Estás seguro de que deseas reiniciar el Libro Mayor de Tokens a $0.0000 USD? Esta acción reiniciará el historial en disco.")) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/tokens/reset', { method: 'POST' });
+    if (res.ok) {
+      await fetchTokenSummaryFromBackend();
+      showToast("Libro mayor de tokens reiniciado a cero.", "success");
+      openTokenAuditModal(); // Refrescar modal
+    }
+  } catch (err) {
+    showToast(`Error al reiniciar: ${err.message}`, "error");
+  }
 }
 
 // 1. GENERAR STORYBOARD COMPLETO
