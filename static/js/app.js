@@ -8,8 +8,19 @@ let selectedStyleKey = 'cinematic_concept';
 let selectedVoiceIntention = 'epic_cinematic';
 let selectedLanguage = 'es_MX';
 let characterAnchorData = null;
+let masterAudioInstance = null;
+let isPlayingMasterAudio = false;
 let totalAccumulatedTokens = 0;
 let totalAccumulatedCostUSD = 0.0;
+
+// Estado de la Matriz de Etiquetas
+let selectedMatrixTags = {
+  genres: "Cyberpunk Neo-Noir",
+  protagonists: "Detective Cansado",
+  conflicts: "Maletín con Código Prohibido",
+  atmospheres: "Neo-Tokyo Lluvioso",
+  tones: "Tenso y Claustrofóbico"
+};
 
 // PLANTILLAS RÁPIDAS
 const PROMPT_PRESETS = {
@@ -33,6 +44,58 @@ function setupRatioSelector() {
       activeRatio = btn.dataset.ratio;
     });
   });
+}
+
+function toggleMatrixTag(btn) {
+  const cat = btn.dataset.cat;
+  const val = btn.dataset.val;
+  if (!cat || !val) return;
+
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.matrix-chip').forEach(chip => chip.classList.remove('active'));
+  btn.classList.add('active');
+
+  selectedMatrixTags[cat] = val;
+}
+
+// ASISTENTE DE GUION: CREAR PREMISA DESDE TAGS
+async function assistPremiseWithAI() {
+  const btn = document.getElementById('btnAssistPremise');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '✨ El Agente IA está redactando la premisa...';
+
+  const apiKey = getStoredApiKey();
+  const creativityVal = parseInt(document.getElementById('creativitySlider').value, 10) / 100.0;
+
+  try {
+    const res = await fetch('/api/storyboard/assist-premise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        selected_tags: selectedMatrixTags,
+        creativity_scale: creativityVal,
+        language_code: selectedLanguage,
+        api_key: apiKey || null
+      })
+    });
+
+    if (!res.ok) throw new Error("Error en la asistencia de premisa.");
+    const data = await res.json();
+
+    const textarea = document.getElementById('scriptInput');
+    textarea.value = data.generated_premise;
+    textarea.classList.add('flash-glow');
+    setTimeout(() => textarea.classList.remove('flash-glow'), 1200);
+
+    if (data.token_usage) recordTokenUsage(data.token_usage);
+    showToast(`✨ Premisa cinematográfica generada: "${data.suggested_title || 'Nueva Historia'}"`, "success");
+  } catch (err) {
+    showToast(`Error: ${err.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
 }
 
 function updateCreativityLabel(val) {
@@ -243,10 +306,16 @@ function renderStoryboardUI(storyboard) {
     card.className = 'shot-card';
     card.id = `shot-card-${shot.shot_number}`;
 
+    const tcStart = shot.timecode_start_sec !== undefined ? shot.timecode_start_sec.toFixed(1) : '0.0';
+    const tcEnd = shot.timecode_end_sec !== undefined ? shot.timecode_end_sec.toFixed(1) : shot.estimated_duration_sec.toFixed(1);
+
     card.innerHTML = `
       <div class="shot-card-header">
         <span class="shot-badge">TOMA #${shot.shot_number} • ${shot.shot_type}</span>
-        <span class="shot-duration">⏱️ ${shot.estimated_duration_sec}s</span>
+        <div class="shot-time-meta">
+          <span class="shot-tc-badge" id="shot-tc-${shot.shot_number}">⏱️ ${tcStart}s - ${tcEnd}s</span>
+          <span class="shot-duration">(${shot.estimated_duration_sec}s)</span>
+        </div>
       </div>
 
       <div class="shot-image-container">
@@ -264,6 +333,7 @@ function renderStoryboardUI(storyboard) {
         <div class="shot-meta-tags">
           <span class="tag-pill camera">🎥 ${shot.camera_movement}</span>
           <span class="tag-pill">💡 ${shot.lighting_and_atmosphere}</span>
+          <span class="tag-pill speaker">🗣️ ${shot.speaker_label || 'Narrador'}</span>
         </div>
 
         <div class="shot-field">
@@ -275,7 +345,7 @@ function renderStoryboardUI(storyboard) {
           <div class="dialogue-box">
             <div class="dialogue-header-mini">
               <span class="acting-tag">🎭 ${shot.acting_intention || 'Actuación Vocal Expresiva'}</span>
-              <span class="voice-badge-mini">🎙️ ${shot.voice_cast || 'TTS 3.1'}</span>
+              <span class="voice-badge-mini">🎙️ ${shot.voice_cast || 'TTS 3.1'} (${shot.speaker_label || 'Voz'})</span>
             </div>
             <p class="dialogue-text">"${shot.dialogue_or_voiceover}"</p>
             <button class="btn-speak-icon" id="btn-tts-${shot.shot_number}" onclick="synthesizeAndPlayShotAudio(${shot.shot_number})" title="Sintetizar locución con Gemini 3.1 Flash TTS">
@@ -300,6 +370,101 @@ function renderStoryboardUI(storyboard) {
   });
 
   renderShotListTable(storyboard);
+}
+
+// SÍNTESIS DE MASTER AUDIO TRACK MULTI-HABLANTE (SINGLE CALL)
+async function synthesizeStoryboardMasterAudio() {
+  if (!currentStoryboard || !currentStoryboard.shots) return;
+  const btn = document.getElementById('btnSynthesizeMasterAudio');
+  const playBtn = document.getElementById('btnPlayMasterAudio');
+  const badge = document.getElementById('masterAudioStatusBadge');
+
+  btn.disabled = true;
+  btn.textContent = "⚡ Sintetizando Master Audio (1 llamada)...";
+
+  const apiKey = getStoredApiKey();
+
+  try {
+    const res = await fetch('/api/storyboard/synthesize-master-audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shots: currentStoryboard.shots,
+        voice_intention_key: selectedVoiceIntention,
+        language_code: selectedLanguage,
+        api_key: apiKey || null
+      })
+    });
+
+    if (!res.ok) throw new Error("Error generando pista master de audio.");
+    const data = await res.json();
+
+    if (data.master_audio_url) {
+      currentStoryboard.master_audio_url = data.master_audio_url;
+      currentStoryboard.master_audio_duration_sec = data.master_duration_sec;
+      currentStoryboard.master_audio_speakers = data.speakers;
+
+      // Actualizar timecodes en cada toma
+      if (data.shots) {
+        data.shots.forEach((updatedShot, idx) => {
+          if (currentStoryboard.shots[idx]) {
+            currentStoryboard.shots[idx].timecode_start_sec = updatedShot.timecode_start_sec;
+            currentStoryboard.shots[idx].timecode_end_sec = updatedShot.timecode_end_sec;
+            currentStoryboard.shots[idx].estimated_duration_sec = updatedShot.estimated_duration_sec;
+
+            const tcEl = document.getElementById(`shot-tc-${currentStoryboard.shots[idx].shot_number}`);
+            if (tcEl) {
+              tcEl.textContent = `⏱️ ${updatedShot.timecode_start_sec.toFixed(1)}s - ${updatedShot.timecode_end_sec.toFixed(1)}s`;
+              tcEl.classList.add('tc-synced');
+            }
+          }
+        });
+      }
+
+      if (data.token_usage) recordTokenUsage(data.token_usage);
+
+      // Actualizar estado UI
+      if (badge) {
+        badge.textContent = `✅ Master Listo (${data.master_duration_sec}s)`;
+        badge.classList.add('badge-success');
+      }
+      if (playBtn) playBtn.classList.remove('hidden');
+
+      // Actualizar el reproductor Animatic con el nuevo master audio
+      initAnimaticPlayer(currentStoryboard.shots);
+
+      showToast(`🎙️ ¡Pista Master de Audio generada (${data.master_duration_sec}s)! Sincronizada con el Animatic Player.`, "success");
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🎙️ Re-sintetizar Master Audio";
+  }
+}
+
+function togglePlayMasterAudio() {
+  if (!currentStoryboard || !currentStoryboard.master_audio_url) return;
+  const playBtn = document.getElementById('btnPlayMasterAudio');
+
+  if (!masterAudioInstance) {
+    masterAudioInstance = new Audio(currentStoryboard.master_audio_url);
+    masterAudioInstance.onended = () => {
+      isPlayingMasterAudio = false;
+      if (playBtn) playBtn.textContent = "▶️ Reproducir Master Track";
+    };
+  }
+
+  if (isPlayingMasterAudio) {
+    masterAudioInstance.pause();
+    isPlayingMasterAudio = false;
+    if (playBtn) playBtn.textContent = "▶️ Reproducir Master Track";
+  } else {
+    masterAudioInstance.src = currentStoryboard.master_audio_url;
+    masterAudioInstance.play();
+    isPlayingMasterAudio = true;
+    if (playBtn) playBtn.textContent = "⏸️ Pausar Master Track";
+  }
 }
 
 // 2. GENERAR CHARACTER ANCHOR SHEET

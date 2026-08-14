@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List
 # Ref: https://ai.google.dev/gemini-api/docs/models
 #
 # Familia Gemini 3.x (estables):
-#   gemini-3.5-flash             - Texto/JSON, razonamiento, structured output (estable, rápido)
+#   gemini-3.5-flash             - Texto/JSON, estructuración de guion, razonamiento, structured output
 #   gemini-3.6-flash             - Último y más rápido modelo flash
 #   gemini-3.1-pro-preview        - Razonamiento profundo y análisis de directores
 #   gemini-3.1-flash-image        - Generación de imágenes nativa y edición multimodal condicionada
@@ -41,6 +41,69 @@ MODEL_PRICING = {
 # Límites de seguridad para evitar loops y consumo descontrolado
 MAX_TEST_RETRIES = 2
 MAX_SEQUENCE_SHOTS = 16
+
+# Matriz de Selección de Etiquetas Creativas (Tag Matrix)
+TAG_MATRIX_PRESETS: Dict[str, Dict[str, Any]] = {
+    "genres": {
+        "title": "🎬 Género",
+        "options": [
+            {"id": "cyberpunk", "label": "Cyberpunk Neo-Noir", "icon": "🏙️"},
+            {"id": "psychological_thriller", "label": "Thriller Psicológico", "icon": "🕵️"},
+            {"id": "space_scifi", "label": "Sci-Fi Espacial", "icon": "🚀"},
+            {"id": "dark_fantasy", "label": "Fantasía Oscura", "icon": "⚔️"},
+            {"id": "gothic_horror", "label": "Terror Gótico", "icon": "🕯️"},
+            {"id": "intimate_drama", "label": "Drama Íntimo", "icon": "💔"},
+            {"id": "blockbuster_action", "label": "Acción & Adrenalina", "icon": "💥"},
+            {"id": "post_apocalyptic", "label": "Postapocalíptico", "icon": "☢️"}
+        ]
+    },
+    "protagonists": {
+        "title": "👤 Protagonista",
+        "options": [
+            {"id": "weary_detective", "label": "Detective Cansado y Cínico", "icon": "🧥"},
+            {"id": "rebel_hacker", "label": "Hacker Rebelde Fugitiva", "icon": "💻"},
+            {"id": "lone_astronaut", "label": "Astronauta en Misión Solitaria", "icon": "👨‍🚀"},
+            {"id": "visionary_scientist", "label": "Científica Obsesionada", "icon": "🔬"},
+            {"id": "covert_operative", "label": "Agente Encubierto Traicionado", "icon": "🕶️"},
+            {"id": "myth_hunter", "label": "Cazador de Reliquias Antiguas", "icon": "🗡️"},
+            {"id": "synthetic_android", "label": "Androide con Conciencia Despertando", "icon": "🤖"}
+        ]
+    },
+    "conflicts": {
+        "title": "⚡ Detonante / Conflicto",
+        "options": [
+            {"id": "forbidden_artifact", "label": "Maletín con Código Prohibido", "icon": "💼"},
+            {"id": "alien_signal", "label": "Transmisión Alienígena Inexplicable", "icon": "📡"},
+            {"id": "betrayal_ambush", "label": "Emboscada y Traición Interna", "icon": "🗡️"},
+            {"id": "countdown_clock", "label": "Cuenta Regresiva de Auto-Destrucción", "icon": "⏳"},
+            {"id": "rogue_ai", "label": "IA Militar Fuera de Control", "icon": "🧠"},
+            {"id": "time_paradox", "label": "Anomalía Temporal Repitiéndose", "icon": "🌀"},
+            {"id": "deadly_secret", "label": "Revelación de Identidad Oculta", "icon": "📜"}
+        ]
+    },
+    "atmospheres": {
+        "title": "🌌 Atmósfera & Entorno",
+        "options": [
+            {"id": "rainy_neotokyo", "label": "Neo-Tokyo Lluvioso y Neones", "icon": "🌧️"},
+            {"id": "snowy_cabin", "label": "Cabaña Aislada en Ventisca", "icon": "❄️"},
+            {"id": "derelict_ship", "label": "Nave Abandonada a Oscuras", "icon": "🛸"},
+            {"id": "underground_catacombs", "label": "Subsuelo y Túneles Clandestinos", "icon": "🔦"},
+            {"id": "golden_dusk", "label": "Hora Dorada Melancólica en Ciudad", "icon": "🌇"},
+            {"id": "victorian_mansion", "label": "Mansión Victoriana en Penumbra", "icon": "🏰"},
+            {"id": "scorched_wasteland", "label": "Páramo Desértico con Polvo Rojo", "icon": "🏜️"}
+        ]
+    },
+    "tones": {
+        "title": "🎭 Tono & Emoción",
+        "options": [
+            {"id": "tense_claustrophobic", "label": "Tenso y Claustrofóbico", "icon": "😰"},
+            {"id": "frenetic_adrenaline", "label": "Frenético y Lleno de Urgencia", "icon": "⚡"},
+            {"id": "poetic_melancholy", "label": "Poético y Melancólico", "icon": "🎻"},
+            {"id": "epic_triumphant", "label": "Épico y Triunfal", "icon": "🎺"},
+            {"id": "eerie_mysterious", "label": "Inquietante y Enigmático", "icon": "👁️"}
+        ]
+    }
+}
 
 # Soporte Multilingüe (70+ idiomas en Gemini 3.1 TTS)
 SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
@@ -118,13 +181,13 @@ EXPRESSIVE_AUDIO_TAGS: List[Dict[str, str]] = [
 VOICE_MAPPINGS: Dict[str, Dict[str, str]] = {
     "elena": {
         "voice_name": "Aoede",  # Voz femenina sofisticada, cálida y cinematográfica
-        "role": "Directora de Fotografía y Arte",
+        "role": "Directora de Fotografía / Personaje Femenino A",
         "description": "Voz femenina articulada, entusiasta y analítica",
         "gender": "female"
     },
     "marcos": {
         "voice_name": "Puck",   # Voz masculina ágil, curiosa y dinámica
-        "role": "Guionista y Showrunner",
+        "role": "Guionista / Personaje Masculino B",
         "description": "Voz masculina reflexiva, persuasiva y enérgica",
         "gender": "male"
     },

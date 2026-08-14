@@ -200,5 +200,56 @@ class TestCoherenceAndSequentialHarness(unittest.TestCase):
         self.assertEqual(res["turns_count"], 2)
         self.assertGreater(res["token_usage"]["audio_chars_synthesized"], 0)
 
+    def test_script_agent_premise_from_tags(self):
+        """Valida que el ScriptAgent sintetice una premisa cinematográfica coherente a partir de la matriz de tags."""
+        from core.storyboard_engine import ScriptAgent
+        tags = {
+            "genres": "Cyberpunk Neo-Noir",
+            "protagonists": "Detective Cansado",
+            "conflicts": "Maletín con Código Prohibido",
+            "atmospheres": "Neo-Tokyo Lluvioso",
+            "tones": "Tenso y Claustrofóbico"
+        }
+        res = ScriptAgent.generate_premise_from_tags(
+            selected_tags=tags,
+            creativity_scale=0.6,
+            language_code="es_MX",
+            allow_demo_fallback=True
+        )
+        self.assertIsNotNone(res.generated_premise)
+        self.assertGreater(len(res.generated_premise), 40)
+        self.assertIsNotNone(res.suggested_title)
+        self.assertEqual(res.selected_tags["genres"], "Cyberpunk Neo-Noir")
+        self.assertIsNotNone(res.token_usage)
+
+    def test_storyboard_master_audio_synthesis_and_timecodes(self):
+        """Valida que la síntesis de Master Audio Track genere un WAV continuo y calcule marcas de tiempo secuenciales."""
+        shots = [
+            {"shot_number": 1, "dialogue_or_voiceover": "[whispers] Caminando en la penumbra de Neo-Tokyo.", "speaker_label": "Narrador", "visual_action": "Silueta bajo la lluvia."},
+            {"shot_number": 2, "dialogue_or_voiceover": "[dramatic pause] El paquete sigue aquí.", "speaker_label": "Protagonista", "visual_action": "Abre el maletín."},
+            {"shot_number": 3, "dialogue_or_voiceover": "[urgent shout] ¡Cuidado con la cornisa!", "speaker_label": "Operadora", "visual_action": "Salto del asesino."}
+        ]
+        
+        res = AudioEngine.synthesize_storyboard_master_audio(
+            shots=shots,
+            voice_intention_key="tense_thriller",
+            language_code="es-MX",
+            allow_demo_fallback=True
+        )
+        
+        self.assertTrue(res["success"])
+        self.assertTrue(res["master_audio_url"].startswith("data:audio/wav;base64,"))
+        self.assertGreater(res["master_duration_sec"], 0)
+        self.assertEqual(res["shots_count"], 3)
+        self.assertEqual(len(res["shots"]), 3)
+        
+        # Verificar coherencia matemática de marcas de tiempo contiguas
+        updated_shots = res["shots"]
+        self.assertEqual(updated_shots[0]["timecode_start_sec"], 0.0)
+        self.assertGreater(updated_shots[0]["timecode_end_sec"], 0.0)
+        self.assertEqual(updated_shots[1]["timecode_start_sec"], updated_shots[0]["timecode_end_sec"])
+        self.assertEqual(updated_shots[2]["timecode_start_sec"], updated_shots[1]["timecode_end_sec"])
+        self.assertAlmostEqual(updated_shots[2]["timecode_end_sec"], res["master_duration_sec"], delta=0.2)
+
 if __name__ == '__main__':
     unittest.main()

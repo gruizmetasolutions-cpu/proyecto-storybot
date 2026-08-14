@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 import config
 from core.gemini_client import gemini_service
@@ -14,11 +14,14 @@ class StoryboardShot(BaseModel):
     dialogue_or_voiceover: str = Field(description="Diálogo o locución expresiva con tags de actuación de audio integrados (e.g. '[whispers] No te muevas... [gasp] Está detrás de ti', '[intense breath] Lo encontramos, pero ya es tarde').")
     acting_intention: str = Field(description="Directiva de dirección actoral y tono emocional para la locución: e.g. 'Voz contenida con temblor de ansiedad', 'Monólogo pausado con ironía y cinismo', 'Grito urgente de advertencia'")
     voice_cast: str = Field(default="narrator_epic", description="Identificador de voz recomendada: 'narrator_epic' (Charon), 'narrator_tense' (Fenrir), 'narrator_warm' (Aoede), 'narrator_dynamic' (Kore), 'elena', 'marcos'")
+    speaker_label: str = Field(default="Narrador", description="Nombre o rol del hablante para síntesis multi-speaker (ej: 'Narrador', 'Protagonista', 'Elena', 'Marcos')")
     sound_effects_and_music: str = Field(description="Diseño sonoro detallado (Foley, SFX ambientales, sub-bajos, textura musical incidental y crescendo).")
     estimated_duration_sec: float = Field(description="Duración estimada del plano en segundos (ej. 3.5, 4.0)")
+    timecode_start_sec: float = Field(default=0.0, description="Tiempo de inicio de la escena en la pista de audio master")
+    timecode_end_sec: float = Field(default=4.0, description="Tiempo de finalización de la escena en la pista de audio master")
     visual_prompt_optimized: str = Field(description="Prompt en inglés hiperdetallado y optimizado para Gemini 3.1 Flash Image, describiendo composición, lente, iluminación, texturas y personajes sin texto ni marcas de agua.")
     image_url: Optional[str] = Field(default=None, description="URL o base64 de la imagen generada")
-    audio_url: Optional[str] = Field(default=None, description="URL o base64 del audio de locución sintetizado con Gemini 3.1 Flash TTS")
+    audio_url: Optional[str] = Field(default=None, description="URL o base64 del audio de locución sintetizado")
 
 class StoryboardProject(BaseModel):
     title: str = Field(description="Título cinematográfico impactante del proyecto")
@@ -32,8 +35,97 @@ class StoryboardProject(BaseModel):
     target_duration_seconds: int = Field(description="Duración total estimada en segundos")
     character_bibles: List[str] = Field(description="Guía de consistencia de personajes principales (rasgos físicos clave, vestimenta, peinado, colores característicos y accesorios inmutables)")
     character_anchor_url: Optional[str] = Field(default=None, description="URL o base64 de la Hoja de Personaje Base (Anchor Sheet)")
+    master_audio_url: Optional[str] = Field(default=None, description="URL o base64 de la pista master de audio continua")
+    master_audio_duration_sec: Optional[float] = Field(default=None, description="Duración real en segundos de la pista master de audio")
+    master_audio_speakers: Optional[List[str]] = Field(default=None, description="Voces asignadas en la pista master")
     shots: List[StoryboardShot] = Field(description="Lista ordenada y secuencial de todos los planos del storyboard")
     token_usage: Optional[TokenUsage] = Field(default=None, description="Métricas de consumo de tokens y costo del proyecto")
+
+class PremiseAssistResult(BaseModel):
+    generated_premise: str = Field(description="Premisa cinematográfica estructurada lista para el storyboard")
+    suggested_title: str = Field(description="Título cinematográfico sugerido")
+    selected_tags: Dict[str, str] = Field(default_factory=dict, description="Etiquetas que inspiraron la historia")
+    token_usage: Optional[TokenUsage] = Field(default=None, description="Tokens consumidos en la asistencia")
+
+class ScriptAgent:
+    @staticmethod
+    def generate_premise_from_tags(
+        selected_tags: Dict[str, str],
+        creativity_scale: float = 0.6,
+        language_code: str = "es_MX",
+        api_key_override: Optional[str] = None,
+        allow_demo_fallback: bool = True
+    ) -> PremiseAssistResult:
+        """
+        Agente Creativo que toma combinaciones de etiquetas (Género, Protagonista, Conflicto, Atmósfera, Tono)
+        y sintetiza una premisa cinematográfica atractiva, estructurada y lista para el Storyboard.
+        """
+        lang_info = config.SUPPORTED_LANGUAGES.get(language_code, config.SUPPORTED_LANGUAGES["es_MX"])
+        lang_name = lang_info["name"]
+        lang_instruction = lang_info["system_instruction"]
+
+        tags_desc = []
+        for cat_key, tag_val in selected_tags.items():
+            cat_title = config.TAG_MATRIX_PRESETS.get(cat_key, {}).get("title", cat_key)
+            tags_desc.append(f"- {cat_title}: {tag_val}")
+        tags_text = "\n".join(tags_desc) if tags_desc else "- Género: Cyberpunk Neo-Noir\n- Protagonista: Detective Cansado\n- Conflicto: Maletín con Código Prohibido\n- Atmósfera: Neo-Tokyo Lluvioso\n- Tono: Tenso y Claustrofóbico"
+
+        has_key = bool(api_key_override or gemini_service.api_key)
+        if not has_key:
+            if allow_demo_fallback:
+                demo_title = "CÓDIGO DE SOMBRAS"
+                genre = selected_tags.get("genres", "Cyberpunk Neo-Noir")
+                protagonist = selected_tags.get("protagonists", "Detective Cansado")
+                conflict = selected_tags.get("conflicts", "Maletín con Código Prohibido")
+                atmosphere = selected_tags.get("atmospheres", "Neo-Tokyo Lluvioso")
+                tone = selected_tags.get("tones", "Tenso y Claustrofóbico")
+
+                premise = f"En un {atmosphere}, un {protagonist} se ve arrastrado al ojo de la tormenta al toparse con un {conflict}. Rodeado por una atmósfera de {genre}, la tensión es {tone}. Cuando las alarmas de seguridad se disparan, descubre que la información que resguarda no solo amenaza su vida, sino que revelará la mayor conspiración oculta en las sombras de la ciudad."
+                usage = TokenTracker.estimate_from_text(prompt_text=tags_text, completion_text=premise)
+                return PremiseAssistResult(
+                    generated_premise=premise,
+                    suggested_title=demo_title,
+                    selected_tags=selected_tags,
+                    token_usage=usage
+                )
+            else:
+                raise ValueError("Se requiere una API Key de Gemini para el Asistente de Guion.")
+
+        temp = 0.35 + (creativity_scale * 0.55)
+
+        system_instruction = f"""Eres un Guionista y Showrunner galardonado de Hollywood, especializado en crear premisas cinematográficas de alto impacto (Hook, Conflicto, Protagonista, Apuesta Dramática).
+
+DIRECTIVA DE IDIOMA:
+- Idioma: {lang_name} ({lang_instruction})
+
+OBJETIVO:
+- Transforma las etiquetas creativas seleccionadas por el usuario en una premisa cinematográfica cautivadora de 2 a 3 párrafos.
+- La premisa debe establecer claramente:
+  1. El protagonista y su situación inicial.
+  2. El detonante o artefacto del conflicto.
+  3. El ambiente sensorial y el tono dramático.
+  4. El clímax inminente o la encrucijada sin salida.
+- Incorpora pequeños ganchos sensoriales e insinuaciones de diálogos con audio tags como [whispers], [dramatic pause] o [urgent shout]."""
+
+        user_prompt = f"""Genera una premisa cinematográfica profesional basada en las siguientes etiquetas seleccionadas:
+
+ETIQUETAS SELECCIONADAS:
+{tags_text}
+
+NIVEL DE CREATIVIDAD: {int(creativity_scale * 100)}%
+
+Genera la respuesta estructurada en formato JSON con 'generated_premise' y 'suggested_title'."""
+
+        result, usage = gemini_service.generate_structured_with_usage(
+            prompt=user_prompt,
+            response_schema=PremiseAssistResult,
+            system_instruction=system_instruction,
+            temperature=temp,
+            api_key_override=api_key_override
+        )
+        result.token_usage = usage
+        result.selected_tags = selected_tags
+        return result
 
 class StoryboardEngine:
     @staticmethod
@@ -52,7 +144,7 @@ class StoryboardEngine:
     ) -> StoryboardProject:
         """
         Genera un storyboard completo, hiperdetallado y cinematográfico
-        con soporte multilingüe, directivas de actuación vocal y tags expresivos para Gemini 3.1 Flash TTS.
+        con soporte multilingüe, directivas de actuación vocal, asignación de hablantes y timecodes.
         """
         style_info = config.STYLE_PRESETS.get(style_key, config.STYLE_PRESETS["cinematic_concept"])
         style_name = style_info["name"]
@@ -93,7 +185,8 @@ IDIOMA DEL PROYECTO:
 TUS PRINCIPIOS DE CREACIÓN DE STORYBOARD:
 1. DETALLE NARRATIVO Y VISUAL MÁXIMO:
    - Describe minuciosamente cada plano: la textura de la piel, microexpresiones, la arquitectura del espacio, la iluminación precisa (temperatura Kelvin, sombras proyectadas, fuentes prácticas), y el movimiento de cámara con terminología técnica cinematográfica.
-2. DIÁLOGOS CON ACTUACIÓN Y AUDIO TAGS EXPRESIVOS:
+2. DIÁLOGOS CON ACTUACIÓN, HABLANTES Y AUDIO TAGS:
+   - Asigna a cada toma un 'speaker_label' claro (e.g. 'Narrador', 'Protagonista', 'Elena', 'Marcos').
    - Los diálogos y locuciones DEBEN incluir tags de modulación de voz en corchetes para el sintetizador de voz Gemini 3.1 Flash TTS (e.g. [whispers], [dramatic pause], [slow breath], [gasp], [intense breath], [chuckles], [sighs], [urgent shout], [fast cadence], [deep resonance]).
    - Adapta el tono al estilo de actuación solicitado: "{voice_directive}".
 3. CONSISTENCIA DE PERSONAJES (CHARACTER BIBLES):
@@ -134,6 +227,14 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
             api_key_override=api_key_override
         )
         
+        # Calcular marcas de tiempo iniciales acumulativas
+        cum_time = 0.0
+        for shot in result.shots:
+            dur = shot.estimated_duration_sec if shot.estimated_duration_sec > 0 else round(target_duration_sec / scene_count, 1)
+            shot.timecode_start_sec = round(cum_time, 2)
+            shot.timecode_end_sec = round(cum_time + dur, 2)
+            cum_time += dur
+
         result.token_usage = usage
         result.aspect_ratio = aspect_ratio
         result.voice_intention = voice_intention_key
@@ -150,12 +251,14 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
         scene_count: int = 6,
         target_duration_sec: int = 30
     ) -> StoryboardProject:
-        """Genera un Storyboard de demostración hiperdetallado y con audio tags expresivos."""
+        """Genera un Storyboard de demostración hiperdetallado y con audio tags expresivos y timecodes calculados."""
         style_info = config.STYLE_PRESETS.get(style_key, config.STYLE_PRESETS["cinematic_concept"])
         style_name = style_info["name"]
         lang_info = config.SUPPORTED_LANGUAGES.get(language_code, config.SUPPORTED_LANGUAGES["es_MX"])
         voice_intention = config.VOICE_INTENTIONS.get(voice_intention_key, config.VOICE_INTENTIONS["epic_cinematic"])
         default_voice = voice_intention["default_voice"]
+
+        shot_dur = round(target_duration_sec / scene_count, 1)
 
         shots_pool = [
             StoryboardShot(
@@ -168,8 +271,11 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 dialogue_or_voiceover="[slow breath] [whispers] En una ciudad donde cada secreto tiene precio... [dramatic pause] nadie mira dos veces a quien camina en la sombra.",
                 acting_intention="Locución pausada, íntima y cargada de misterio, con respiración perceptible antes de la frase.",
                 voice_cast=default_voice,
+                speaker_label="Narrador",
                 sound_effects_and_music="Lluvia continua golpeando el asfalto, eco lejano de sirenas urbanas y una nota grave sostenida de violonchelo con textura de sintetizador análogo.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=0.0,
+                timecode_end_sec=shot_dur,
                 visual_prompt_optimized=f"Extreme wide shot, cinematic low angle, lone figure in long dark tactical trench coat walking through dense rain-soaked neon alleyway at dusk, volumetric blue rim light, golden reflections on puddles, anamorphic lens 35mm, {style_info['prompt_suffix']}"
             ),
             StoryboardShot(
@@ -181,9 +287,12 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 lighting_and_atmosphere="Luz lateral rasante bicolor (cian y naranja) que esculpe los pómulos y la textura del abrigo de cuero sintético. Gotas de lluvia resbalando por su rostro.",
                 dialogue_or_voiceover="[tense whisper] El contacto debía estar aquí a las ocho en punto... [sharp intake of breath] No hay margen para errores.",
                 acting_intention="Tensión contenida, pulso acelerado y vigilancia extrema en la entonación.",
-                voice_cast=default_voice,
+                voice_cast="marcos",
+                speaker_label="Protagonista",
                 sound_effects_and_music="Gotas pesadas cayendo sobre metal, crujido de grava bajo la suela y un latido rítmico sub-bajo que comienza a acelerar.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=shot_dur,
+                timecode_end_sec=round(shot_dur * 2, 1),
                 visual_prompt_optimized=f"Medium shot, determined protagonist stopping under flickering street light, dramatic dual lighting cyan and amber, intense gaze, wet hair, realistic leather texture, depth of field f/1.8, {style_info['prompt_suffix']}"
             ),
             StoryboardShot(
@@ -195,9 +304,12 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 lighting_and_atmosphere="Resplandor verde esmeralda y cian de alta intensidad que genera un aura mágica en las manos y partículas de polvo en suspensión.",
                 dialogue_or_voiceover="[gasp] El código de cifrado sigue intacto... [whispers with urgency] pero el transmisor de rastreo está encendido.",
                 acting_intention="Asombro contenido que se transforma de inmediato en alerta y urgencia.",
-                voice_cast=default_voice,
+                voice_cast="marcos",
+                speaker_label="Protagonista",
                 sound_effects_and_music="Despresurización neumática 'hiss', zumbido electromagnético armónico de alta frecuencia y glissando de sintetizador.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=round(shot_dur * 2, 1),
+                timecode_end_sec=round(shot_dur * 3, 1),
                 visual_prompt_optimized=f"Close-up macro insert shot, hands opening metallic cybernetic case emitting radiant emerald green holographic data geometry, volumetric dust particles, 50mm anamorphic lens, {style_info['prompt_suffix']}"
             ),
             StoryboardShot(
@@ -209,9 +321,12 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 lighting_and_atmosphere="Contraluz intenso con silueta recortada contra el cielo tormentoso iluminado por relámpagos lejanos.",
                 dialogue_or_voiceover="[urgent shout] [sharp breath] ¡No estás solo! ¡Nos encontraron!",
                 acting_intention="Impacto visceral, advertencia tajante y detonación de la acción.",
-                voice_cast=default_voice,
+                voice_cast="elena",
+                speaker_label="Operadora",
                 sound_effects_and_music="Trueno seco y retumbante, golpe orquestal dramático (braam) y sonido de acero cortando el viento.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=round(shot_dur * 3, 1),
+                timecode_end_sec=round(shot_dur * 4, 1),
                 visual_prompt_optimized=f"Dramatic low angle Dutch tilt shot looking up, sleek assassin silhouette on rooftop ledge against stormy sky, sharp lightning backlight, high contrast, dynamic action composition, {style_info['prompt_suffix']}"
             ),
             StoryboardShot(
@@ -223,9 +338,12 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 lighting_and_atmosphere="Luz clave cálida frontal cruzada con un haz de destello anamórfico horizontal azulado que cruza el cuadro.",
                 dialogue_or_voiceover="[deep breath] [intense confidence] Si quieren la verdad... [dramatic pause] tendrán que venir por ella.",
                 acting_intention="Determinación absoluta, desafío frío y valentía inquebrantable.",
-                voice_cast=default_voice,
+                voice_cast="marcos",
+                speaker_label="Protagonista",
                 sound_effects_and_music="Crescendo orquestal arrollador con sección de cuerdas veloces y percusión cinematográfica estilo Taiko.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=round(shot_dur * 4, 1),
+                timecode_end_sec=round(shot_dur * 5, 1),
                 visual_prompt_optimized=f"Extreme close up portrait, intense determined eyes, reflection of holographic light in pupils, anamorphic blue horizontal lens flare, hyper-detailed skin texture, master cinematography, {style_info['prompt_suffix']}"
             ),
             StoryboardShot(
@@ -238,15 +356,22 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
                 dialogue_or_voiceover="[epic crescendo] La cacería... [dramatic pause] apenas comienza.",
                 acting_intention="Cierre épico de trailer, potencia vocal y resolución triunfal.",
                 voice_cast=default_voice,
+                speaker_label="Narrador",
                 sound_effects_and_music="Explosión orquestal final apoteósica que culmina en un golpe seco de percusión y desvanecimiento a silencio.",
-                estimated_duration_sec=round(target_duration_sec / scene_count, 1),
+                estimated_duration_sec=shot_dur,
+                timecode_start_sec=round(shot_dur * 5, 1),
+                timecode_end_sec=round(shot_dur * 6, 1),
                 visual_prompt_optimized=f"Cinematic wide tracking shot, protagonist moving toward a blinding tunnel of bright warm light, silhouette motion blur, epic blockbuster final frame, {style_info['prompt_suffix']}"
             )
         ]
 
         selected_shots = shots_pool[:scene_count]
+        cum_time = 0.0
         for idx, shot in enumerate(selected_shots):
             shot.shot_number = idx + 1
+            shot.timecode_start_sec = round(cum_time, 2)
+            shot.timecode_end_sec = round(cum_time + shot.estimated_duration_sec, 2)
+            cum_time += shot.estimated_duration_sec
 
         clean_premise = input_text.strip() if input_text else "Relato de suspenso y acción cinematográfica"
         usage = TokenTracker.estimate_from_text(prompt_text=clean_premise, completion_text=clean_premise * 8)

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 import config
 from core.gemini_client import gemini_service
-from core.storyboard_engine import StoryboardEngine, StoryboardProject, StoryboardShot
+from core.storyboard_engine import StoryboardEngine, StoryboardProject, StoryboardShot, ScriptAgent, PremiseAssistResult
 from core.podcast_engine import PodcastEngine, DirectorPodcast
 from core.visual_engine import VisualEngine
 from core.audio_engine import AudioEngine
@@ -40,6 +40,12 @@ app.add_middleware(
 
 class VerifyKeyRequest(BaseModel):
     api_key: str
+
+class AssistPremiseRequest(BaseModel):
+    selected_tags: Dict[str, str] = Field(default_factory=dict)
+    creativity_scale: float = 0.6
+    language_code: str = "es_MX"
+    api_key: Optional[str] = None
 
 class GenerateStoryboardRequest(BaseModel):
     input_text: str
@@ -72,6 +78,12 @@ class RenderSequenceRequest(BaseModel):
     style_key: str = "cinematic_concept"
     aspect_ratio: str = "16:9"
     negative_prompt: Optional[str] = None
+    api_key: Optional[str] = None
+
+class MasterAudioRequest(BaseModel):
+    shots: List[Dict[str, Any]]
+    voice_intention_key: str = "epic_cinematic"
+    language_code: str = "es-MX"
     api_key: Optional[str] = None
 
 class SynthesizeSpeechRequest(BaseModel):
@@ -113,6 +125,7 @@ async def get_app_config():
         "voice_intentions": config.VOICE_INTENTIONS,
         "languages": config.SUPPORTED_LANGUAGES,
         "audio_tags": config.EXPRESSIVE_AUDIO_TAGS,
+        "tag_matrix": config.TAG_MATRIX_PRESETS,
         "models": {
             "text": config.DEFAULT_TEXT_MODEL,
             "reasoning": config.DEEP_REASONING_MODEL,
@@ -122,6 +135,24 @@ async def get_app_config():
         "pricing": config.MODEL_PRICING,
         "has_env_key": bool(os.environ.get("GEMINI_API_KEY"))
     }
+
+# ----- Script Assistant: Premise from Tag Matrix -----
+
+@app.post("/api/storyboard/assist-premise")
+async def assist_premise(req: AssistPremiseRequest):
+    """Genera una premisa cinematográfica profesional a partir de una selección de etiquetas."""
+    try:
+        result = ScriptAgent.generate_premise_from_tags(
+            selected_tags=req.selected_tags,
+            creativity_scale=req.creativity_scale,
+            language_code=req.language_code,
+            api_key_override=req.api_key if req.api_key else None,
+            allow_demo_fallback=True
+        )
+        return result.model_dump()
+    except Exception as e:
+        logger.error(f"Error en assist_premise:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error generando premisa: {str(e)}")
 
 # ----- API Key Verification -----
 
@@ -247,6 +278,24 @@ async def synthesize_speech(req: SynthesizeSpeechRequest):
     except Exception as e:
         logger.error(f"Error en síntesis TTS:\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error en síntesis TTS: {str(e)}")
+
+@app.post("/api/storyboard/synthesize-master-audio")
+async def synthesize_storyboard_master_audio(req: MasterAudioRequest):
+    """Sintetiza la pista de audio master completa del Storyboard en una sola llamada multi-hablante."""
+    if not req.shots:
+        raise HTTPException(status_code=400, detail="El storyboard no contiene tomas.")
+    try:
+        result = AudioEngine.synthesize_storyboard_master_audio(
+            shots=req.shots,
+            voice_intention_key=req.voice_intention_key,
+            language_code=req.language_code,
+            api_key_override=req.api_key if req.api_key else None,
+            allow_demo_fallback=True
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error en synthesize_storyboard_master_audio:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error generando pista master de audio: {str(e)}")
 
 # ----- Podcast Overview & Full Audio Synthesis -----
 

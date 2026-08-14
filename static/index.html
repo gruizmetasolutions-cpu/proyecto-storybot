@@ -74,20 +74,91 @@
           <span class="badge-tag">Harness v2.0</span>
         </div>
 
-        <!-- 1. GUION / IDEA DE ENTRADA -->
+        <!-- 1. MATRIZ DE ETIQUETAS CREATIVAS & GUION -->
         <div class="control-group">
           <div class="control-label-row">
-            <label for="scriptInput">Premisa, Guion o Idea</label>
-            <span class="help-tooltip" title="Escribe tu historia, diálogo o idea. También puedes usar una plantilla de ejemplo.">?</span>
-          </div>
-          
-          <div class="preset-pills">
-            <button type="button" class="pill" onclick="loadPromptPreset('cyberpunk')">Comercial Cyberpunk</button>
-            <button type="button" class="pill" onclick="loadPromptPreset('thriller')">Thriller Suspense</button>
-            <button type="button" class="pill" onclick="loadPromptPreset('emotional')">Drama Emotivo</button>
+            <label>🎯 Matriz de Etiquetas Creativas</label>
+            <span class="badge-pill-tts">Asistente IA</span>
           </div>
 
-          <textarea id="scriptInput" class="custom-textarea" rows="4" placeholder="Ej: Un detective camina por un callejón lluvioso iluminado por letreros de neón parpadeantes. Encuentra un maletín misterioso con un código de luces holográficas..."></textarea>
+          <details class="tag-matrix-details" open>
+            <summary class="tag-matrix-summary">Seleccionar Etiquetas para la Historia</summary>
+            <div class="tag-matrix-container">
+              <!-- GÉNEROS -->
+              <div class="matrix-category">
+                <span class="cat-title">🎬 Género:</span>
+                <div class="matrix-chips" id="matrixGenres">
+                  <button type="button" class="matrix-chip active" data-cat="genres" data-val="Cyberpunk Neo-Noir" onclick="toggleMatrixTag(this)">🏙️ Cyberpunk</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Thriller Psicológico" onclick="toggleMatrixTag(this)">🕵️ Thriller</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Sci-Fi Espacial" onclick="toggleMatrixTag(this)">🚀 Sci-Fi</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Fantasía Oscura" onclick="toggleMatrixTag(this)">⚔️ Fantasía</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Terror Gótico" onclick="toggleMatrixTag(this)">🕯️ Terror</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Drama Íntimo" onclick="toggleMatrixTag(this)">💔 Drama</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Acción & Adrenalina" onclick="toggleMatrixTag(this)">💥 Acción</button>
+                </div>
+              </div>
+
+              <!-- PROTAGONISTAS -->
+              <div class="matrix-category">
+                <span class="cat-title">👤 Protagonista:</span>
+                <div class="matrix-chips" id="matrixProtagonists">
+                  <button type="button" class="matrix-chip active" data-cat="protagonists" data-val="Detective Cansado" onclick="toggleMatrixTag(this)">🧥 Detective</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Hacker Rebelde" onclick="toggleMatrixTag(this)">💻 Hacker</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Astronauta Solitario" onclick="toggleMatrixTag(this)">👨‍🚀 Astronauta</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Científica Visionaria" onclick="toggleMatrixTag(this)">🔬 Científica</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Agente Encubierto" onclick="toggleMatrixTag(this)">🕶️ Espía</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Androide Sintético" onclick="toggleMatrixTag(this)">🤖 Androide</button>
+                </div>
+              </div>
+
+              <!-- DETONANTES -->
+              <div class="matrix-category">
+                <span class="cat-title">⚡ Conflicto / Detonante:</span>
+                <div class="matrix-chips" id="matrixConflicts">
+                  <button type="button" class="matrix-chip active" data-cat="conflicts" data-val="Maletín con Código Prohibido" onclick="toggleMatrixTag(this)">💼 Maletín Secreto</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Señal Alienígena Inexplicable" onclick="toggleMatrixTag(this)">📡 Señal Alien</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Traición Interna Inesperada" onclick="toggleMatrixTag(this)">🗡️ Traición</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Cuenta Regresiva Mortal" onclick="toggleMatrixTag(this)">⏳ Cuenta Regresiva</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="IA Fuera de Control" onclick="toggleMatrixTag(this)">🧠 IA Rebelde</button>
+                </div>
+              </div>
+
+              <!-- ATMÓSFERAS -->
+              <div class="matrix-category">
+                <span class="cat-title">🌌 Atmósfera:</span>
+                <div class="matrix-chips" id="matrixAtmospheres">
+                  <button type="button" class="matrix-chip active" data-cat="atmospheres" data-val="Neo-Tokyo Lluvioso" onclick="toggleMatrixTag(this)">🌧️ Neo-Tokyo</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Cabaña en Ventisca" onclick="toggleMatrixTag(this)">❄️ Cabaña Nieve</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Nave Abandonada" onclick="toggleMatrixTag(this)">🛸 Nave Deriva</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Túneles Clandestinos" onclick="toggleMatrixTag(this)">🔦 Subsuelo</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Páramo Desértico" onclick="toggleMatrixTag(this)">🏜️ Páramo</button>
+                </div>
+              </div>
+
+              <!-- TONO -->
+              <div class="matrix-category">
+                <span class="cat-title">🎭 Tono:</span>
+                <div class="matrix-chips" id="matrixTones">
+                  <button type="button" class="matrix-chip active" data-cat="tones" data-val="Tenso y Claustrofóbico" onclick="toggleMatrixTag(this)">😰 Tenso</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Adrenalina Pura" onclick="toggleMatrixTag(this)">⚡ Adrenalina</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Poético y Melancólico" onclick="toggleMatrixTag(this)">🎻 Melancólico</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Épico y Triunfal" onclick="toggleMatrixTag(this)">🎺 Épico</button>
+                </div>
+              </div>
+
+              <!-- BOTÓN ASISTENTE -->
+              <button type="button" id="btnAssistPremise" class="btn btn-assist-ai" onclick="assistPremiseWithAI()">
+                ✨ Crear Premisa con Agente IA (Gemini 3.5)
+              </button>
+            </div>
+          </details>
+
+          <div class="control-label-row" style="margin-top: 10px;">
+            <label for="scriptInput">Guion o Premisa Cinematográfica</label>
+            <span class="help-tooltip" title="Puedes editar libremente el texto generado o escribir tu propia idea.">?</span>
+          </div>
+          
+          <textarea id="scriptInput" class="custom-textarea" rows="4" placeholder="Selecciona etiquetas arriba y presiona 'Crear Premisa con IA', o escribe directamente tu guion aquí..."></textarea>
           
           <!-- ETIQUETAS DE AUDIO EXPRESIVAS (AUDIO TAGS) -->
           <div class="audio-tags-toolbar">
@@ -335,6 +406,26 @@
                 </button>
                 <button id="btnRenderSequence" class="btn btn-primary" onclick="renderSequentialPipeline()">
                   ⚡ Renderizar Secuencia Coherente
+                </button>
+              </div>
+            </div>
+
+            <!-- BARRA DE MASTER AUDIO TRACK MULTI-HABLANTE -->
+            <div class="master-audio-bar">
+              <div class="audio-bar-left">
+                <div class="audio-bar-title">
+                  <span class="audio-pulse-icon">🎙️</span>
+                  <strong>Master Audio Track Multi-Hablante (Single Call TTS)</strong>
+                  <span id="masterAudioStatusBadge" class="badge-tag">Sin Sintetizar</span>
+                </div>
+                <p class="audio-bar-desc">Sintetiza la historia completa con voces consistentes para Narrador y Personajes en una sola solicitud, sincronizando marcas de tiempo para el Animatic.</p>
+              </div>
+              <div class="audio-bar-right">
+                <button id="btnSynthesizeMasterAudio" class="btn btn-secondary btn-sm" onclick="synthesizeStoryboardMasterAudio()">
+                  🎙️ Sintetizar Master Audio (3.1)
+                </button>
+                <button id="btnPlayMasterAudio" class="btn btn-primary btn-sm hidden" onclick="togglePlayMasterAudio()">
+                  ▶️ Reproducir Master Track
                 </button>
               </div>
             </div>

@@ -358,6 +358,155 @@ label {
   background: var(--bg-surface-hover);
 }
 
+/* ==========================================================================
+   MATRIZ DE ETIQUETAS CREATIVAS (TAG MATRIX)
+   ========================================================================== */
+
+.tag-matrix-details {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+.tag-matrix-summary {
+  font-size: 11px;
+  font-weight: 700;
+  color: #60a5fa;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.tag-matrix-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.matrix-category {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cat-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.matrix-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.matrix-chip {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.matrix-chip:hover {
+  border-color: var(--accent-primary);
+  color: #ffffff;
+  background: var(--bg-surface-hover);
+}
+
+.matrix-chip.active {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: var(--accent-primary);
+  color: #93c5fd;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+  font-weight: 700;
+}
+
+.btn-assist-ai {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+  width: 100%;
+  margin-top: 4px;
+}
+
+.btn-assist-ai:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-assist-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   MASTER AUDIO TRACK BAR
+   ========================================================================== */
+
+.master-audio-bar {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.audio-bar-left {
+  flex: 1;
+  min-width: 260px;
+}
+
+.audio-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.audio-pulse-icon {
+  font-size: 16px;
+}
+
+.audio-bar-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.audio-bar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* AUDIO TAGS TOOLBAR */
 .audio-tags-toolbar {
   background: rgba(15, 23, 42, 0.6);
@@ -797,6 +946,44 @@ label {
   flex-direction: column;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+}
+
+.flash-glow {
+  animation: flashGlowAnim 1.2s ease-out;
+}
+
+@keyframes flashGlowAnim {
+  0% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.9); border-color: #60a5fa; }
+  100% { box-shadow: none; border-color: var(--border-subtle); }
+}
+
+.shot-time-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shot-tc-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.shot-tc-badge.tc-synced {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.tag-pill.speaker {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.3);
 }
 
 .shot-card:hover {

@@ -83,7 +83,6 @@ class AudioEngine:
         num_samples = int(sample_rate * total_duration)
         base_pitch = 220.0 if voice_type == "female" else 130.0
         
-        # Si es susurro, reducir volumen y alterar armónicos
         is_whisper = "[whispers]" in text or "[susurro]" in text
         volume_factor = 4000.0 if is_whisper else 12000.0
         
@@ -91,7 +90,7 @@ class AudioEngine:
         
         for i in range(num_samples):
             t = i / sample_rate
-            word_idx = int((t / total_duration) * len(words))
+            word_idx = int((t / total_duration) * len(words)) if words else 0
             pitch_mod = math.sin(2 * math.pi * 3.0 * t) * 15.0
             cur_pitch = (base_pitch * 0.85 if is_whisper else base_pitch) + pitch_mod
             
@@ -210,6 +209,156 @@ class AudioEngine:
             raise e
 
     @staticmethod
+    def synthesize_storyboard_master_audio(
+        shots: List[Dict[str, Any]],
+        voice_intention_key: str = "epic_cinematic",
+        language_code: str = "es-MX",
+        api_key_override: Optional[str] = None,
+        allow_demo_fallback: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Genera la PISTA MASTER DE AUDIO NARRATIVO en UNA SOLA LLAMADA a Gemini 3.1 Flash TTS
+        usando MultiSpeakerVoiceConfig (Narrador y Protagonista/Operador).
+        Calcula marcas de tiempo precisas por plano para sincronizar el Animatic Player.
+        """
+        voice_intention = config.VOICE_INTENTIONS.get(voice_intention_key, config.VOICE_INTENTIONS["epic_cinematic"])
+        default_voice_key = voice_intention.get("default_voice", "narrator_epic")
+        
+        # Mapear 2 hablantes consistentes
+        primary_voice = config.VOICE_MAPPINGS.get(default_voice_key, config.VOICE_MAPPINGS["narrator_epic"])["voice_name"]
+        secondary_voice = "Aoede" if primary_voice in ["Charon", "Fenrir", "Puck"] else "Puck"
+
+        speaker_map = {
+            "Speaker1": primary_voice,
+            "Speaker2": secondary_voice
+        }
+
+        # Construir líneas del guion maestro multi-hablante y medir longitudes relativas
+        script_lines = []
+        shot_char_counts = []
+        total_chars = 0
+
+        for shot in shots:
+            raw_dialogue = shot.get("dialogue_or_voiceover", "").strip()
+            if not raw_dialogue:
+                raw_dialogue = f"[dramatic pause] {shot.get('visual_action', 'Escena dramática')}."
+
+            normalized = AudioEngine.normalize_expressive_tags(raw_dialogue)
+            spk_label = shot.get("speaker_label", "Narrador")
+            
+            # Asignar a Speaker1 o Speaker2
+            if any(term in spk_label.lower() for term in ["protagonista", "elena", "marcos", "operadora", "antagonista"]):
+                assigned_speaker = "Speaker2"
+            else:
+                assigned_speaker = "Speaker1"
+
+            script_lines.append(f"{assigned_speaker}: {normalized}")
+            char_len = max(10, len(normalized))
+            shot_char_counts.append(char_len)
+            total_chars += char_len
+
+        master_prompt = "\n".join(script_lines)
+
+        has_key = bool(api_key_override or gemini_service.api_key)
+        pcm_bytes = None
+
+        if has_key:
+            try:
+                client = gemini_service.get_client(api_key_override)
+                speaker_configs = [
+                    types.SpeakerVoiceConfig(
+                        speaker="Speaker1",
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=speaker_map["Speaker1"]
+                            )
+                        )
+                    ),
+                    types.SpeakerVoiceConfig(
+                        speaker="Speaker2",
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=speaker_map["Speaker2"]
+                            )
+                        )
+                    )
+                ]
+
+                speech_config = types.SpeechConfig(
+                    multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                        speaker_voice_configs=speaker_configs
+                    )
+                )
+
+                response = client.models.generate_content(
+                    model=config.AUDIO_TTS_MODEL,
+                    contents=master_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=speech_config
+                    )
+                )
+
+                if response.candidates and response.candidates[0].content:
+                    for part in response.candidates[0].content.parts:
+                        if part.inline_data and part.inline_data.data:
+                            pcm_bytes = part.inline_data.data
+                            break
+            except Exception as e:
+                print(f"Aviso en MultiSpeaker Master Audio call: {e}. Aplicando síntesis concatenada fallback.")
+
+        if not pcm_bytes:
+            if allow_demo_fallback:
+                # Generar concatenación fluida de demostración
+                full_demo_pcm = bytearray()
+                for idx, shot in enumerate(shots):
+                    dialogue = shot.get("dialogue_or_voiceover", "")
+                    spk = shot.get("speaker_label", "Narrador")
+                    gender = "female" if any(k in spk.lower() for k in ["elena", "operadora"]) else "male"
+                    wav = AudioEngine.generate_procedural_speech_wav(dialogue, voice_type=gender)
+                    if len(wav) > 44:
+                        full_demo_pcm.extend(wav[44:])
+                        full_demo_pcm.extend(AudioEngine.generate_silence_pcm(0.25))
+                pcm_bytes = bytes(full_demo_pcm)
+            else:
+                raise ValueError("Se requiere una API Key de Gemini para generar el Master Audio Track.")
+
+        wav_bytes = AudioEngine.pcm_to_wav_bytes(pcm_bytes)
+        b64 = base64.b64encode(wav_bytes).decode("utf-8")
+        
+        # Calcular duración total real del WAV
+        total_samples = len(pcm_bytes) // (config.AUDIO_CHANNELS * config.AUDIO_SAMPLE_WIDTH)
+        total_duration_sec = round(total_samples / config.AUDIO_SAMPLE_RATE, 2)
+
+        # Distribuir timecodes proporcionales exactos a cada toma
+        updated_shots = []
+        cum_time = 0.0
+        for idx, shot in enumerate(shots):
+            shot_copy = dict(shot)
+            char_fraction = shot_char_counts[idx] / total_chars if total_chars > 0 else (1.0 / len(shots))
+            shot_duration = round(total_duration_sec * char_fraction, 2)
+            
+            shot_copy["timecode_start_sec"] = round(cum_time, 2)
+            shot_copy["timecode_end_sec"] = round(cum_time + shot_duration, 2)
+            shot_copy["estimated_duration_sec"] = shot_duration
+            cum_time += shot_duration
+            updated_shots.append(shot_copy)
+
+        token_usage = TokenTracker.calculate_cost(audio_chars=total_chars)
+
+        return {
+            "success": True,
+            "master_audio_url": f"data:audio/wav;base64,{b64}",
+            "master_duration_sec": total_duration_sec,
+            "method": "single_request_multi_speaker_master",
+            "speakers": [f"Speaker 1 ({speaker_map['Speaker1']})", f"Speaker 2 ({speaker_map['Speaker2']})"],
+            "shots": updated_shots,
+            "shots_count": len(shots),
+            "model": config.AUDIO_TTS_MODEL,
+            "token_usage": token_usage.model_dump()
+        }
+
+    @staticmethod
     def synthesize_multi_speaker_single_request(
         dialogue_turns: List[Dict[str, str]],
         speaker_voices: Dict[str, str] = None,
@@ -231,7 +380,6 @@ class AudioEngine:
         total_chars = 0
         for turn in dialogue_turns:
             spk = turn.get("speaker", "Elena").strip()
-            # Normalizar nombre del speaker
             spk_label = "Elena" if "elena" in spk.lower() else "Marcos"
             txt = AudioEngine.normalize_expressive_tags(turn.get("text", ""))
             total_chars += len(txt)
@@ -242,7 +390,6 @@ class AudioEngine:
         has_key = bool(api_key_override or gemini_service.api_key)
         if not has_key:
             if allow_demo_fallback:
-                # Fallback concatenado procedimental de demostración
                 return AudioEngine.synthesize_podcast_episode(
                     dialogue_turns=dialogue_turns,
                     api_key_override=None,
@@ -254,7 +401,6 @@ class AudioEngine:
         try:
             client = gemini_service.get_client(api_key_override)
             
-            # Configurar multi-speaker voice config nativo de Gemini 3.1 Flash TTS
             speaker_configs = [
                 types.SpeakerVoiceConfig(
                     speaker="Elena",

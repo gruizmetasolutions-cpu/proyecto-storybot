@@ -7,6 +7,7 @@ let currentShotIndex = 0;
 let isPlaying = false;
 let playTimer = null;
 let voiceoverEnabled = true;
+let animaticMasterAudio = null;
 let synth = window.speechSynthesis;
 let availableVoices = [];
 
@@ -26,6 +27,11 @@ function initAnimaticPlayer(shots, ratio = '16:9') {
   isPlaying = false;
   clearInterval(playTimer);
 
+  if (animaticMasterAudio) {
+    animaticMasterAudio.pause();
+    animaticMasterAudio = null;
+  }
+
   // Sincronizar relación de aspecto
   if (currentStoryboard && currentStoryboard.aspect_ratio) {
     setPlayerAspectRatio(currentStoryboard.aspect_ratio);
@@ -35,7 +41,7 @@ function initAnimaticPlayer(shots, ratio = '16:9') {
 
   if (animaticShots.length > 0) {
     renderTimelineSegments();
-    displayShot(0);
+    displayShot(0, false);
   }
 }
 
@@ -44,10 +50,8 @@ function setPlayerAspectRatio(ratio) {
   const badge = document.getElementById('animaticRatioBadge');
   if (!screen) return;
 
-  // Limpiar clases de ratio previas
   screen.classList.remove('ratio-16-9', 'ratio-9-16', 'ratio-239-1', 'ratio-4-3', 'ratio-1-1');
 
-  // Mapear ratio a clase CSS
   const ratioMap = {
     '16:9': 'ratio-16-9',
     '9:16': 'ratio-9-16',
@@ -61,7 +65,6 @@ function setPlayerAspectRatio(ratio) {
 
   if (badge) badge.textContent = `📐 ${ratio}`;
 
-  // Actualizar botones activos
   document.querySelectorAll('.animatic-ratio-btn').forEach(btn => {
     if (btn.dataset.playerRatio === ratio) {
       btn.classList.add('active');
@@ -81,13 +84,16 @@ function renderTimelineSegments() {
     seg.className = `timeline-segment ${index === currentShotIndex ? 'active' : ''}`;
     seg.onclick = () => {
       pauseAnimatic();
-      displayShot(index);
+      displayShot(index, false);
+      if (animaticMasterAudio && shot.timecode_start_sec !== undefined) {
+        animaticMasterAudio.currentTime = shot.timecode_start_sec;
+      }
     };
     container.appendChild(seg);
   });
 }
 
-function displayShot(index) {
+function displayShot(index, playSingleTTS = true) {
   if (!animaticShots || animaticShots.length === 0) return;
   if (index < 0) index = 0;
   if (index >= animaticShots.length) index = animaticShots.length - 1;
@@ -97,22 +103,23 @@ function displayShot(index) {
 
   // Actualizar imagen con efecto Ken Burns
   const imgEl = document.getElementById('animaticImage');
-  imgEl.classList.remove('pan-zoom');
-  void imgEl.offsetWidth; // trigger reflow
-  imgEl.src = shot.image_url || '';
-  imgEl.classList.add('pan-zoom');
+  if (imgEl) {
+    imgEl.classList.remove('pan-zoom');
+    void imgEl.offsetWidth; // trigger reflow
+    imgEl.src = shot.image_url || '';
+    imgEl.classList.add('pan-zoom');
+  }
 
   // Metadatos en pantalla
-  document.getElementById('animaticShotNumber').textContent = `Toma #${shot.shot_number} de ${animaticShots.length}`;
-  document.getElementById('animaticShotType').textContent = `${shot.shot_type} (${shot.camera_movement})`;
-  document.getElementById('animaticDialogue').textContent = shot.dialogue_or_voiceover ? `"${shot.dialogue_or_voiceover}"` : `[SFX: ${shot.sound_effects_and_music}]`;
-  document.getElementById('animaticActionHint').textContent = shot.visual_action;
+  const shotNumEl = document.getElementById('animaticShotNumber');
+  const shotTypeEl = document.getElementById('animaticShotType');
+  const dialEl = document.getElementById('animaticDialogue');
+  const actionEl = document.getElementById('animaticActionHint');
 
-  // Actualizar indicador de progreso
-  const progressPercent = ((index + 1) / animaticShots.length) * 100;
-  document.getElementById('animaticProgressFill').style.width = `${progressPercent}%`;
-  document.getElementById('playerCurrentTime').textContent = `Toma ${index + 1}`;
-  document.getElementById('playerTotalTime').textContent = `${animaticShots.length} Tomas`;
+  if (shotNumEl) shotNumEl.textContent = `Toma #${shot.shot_number} de ${animaticShots.length}`;
+  if (shotTypeEl) shotTypeEl.textContent = `${shot.shot_type} (${shot.speaker_label || 'Voz'})`;
+  if (dialEl) dialEl.textContent = shot.dialogue_or_voiceover ? `"${shot.dialogue_or_voiceover}"` : `[SFX: ${shot.sound_effects_and_music}]`;
+  if (actionEl) actionEl.textContent = shot.visual_action;
 
   // Actualizar segmentos de timeline
   const segments = document.querySelectorAll('.timeline-segment');
@@ -120,8 +127,8 @@ function displayShot(index) {
     seg.className = `timeline-segment ${i <= index ? 'active' : ''}`;
   });
 
-  // Hablar locución si está activada
-  if (voiceoverEnabled && shot.dialogue_or_voiceover) {
+  // Si no hay master audio corriendo y se solicitó locución individual
+  if (playSingleTTS && !isPlaying && voiceoverEnabled && shot.dialogue_or_voiceover) {
     if (shot.audio_url) {
       const audio = new Audio(shot.audio_url);
       audio.play().catch(() => {});
@@ -144,37 +151,113 @@ function playAnimatic() {
   isPlaying = true;
   document.getElementById('btnPlayPause').textContent = '⏸️';
 
-  const stepAnimatic = () => {
-    if (!isPlaying) return;
-    const shot = animaticShots[currentShotIndex];
-    const duration = (shot.estimated_duration_sec || 4) * 1000;
+  const hasMasterAudio = currentStoryboard && currentStoryboard.master_audio_url;
 
-    playTimer = setTimeout(() => {
-      if (!isPlaying) return;
-      if (currentShotIndex < animaticShots.length - 1) {
-        displayShot(currentShotIndex + 1);
-        stepAnimatic();
-      } else {
-        pauseAnimatic();
-        displayShot(0); // Reiniciar al inicio
+  if (hasMasterAudio) {
+    if (!animaticMasterAudio) {
+      animaticMasterAudio = new Audio(currentStoryboard.master_audio_url);
+    } else {
+      animaticMasterAudio.src = currentStoryboard.master_audio_url;
+    }
+
+    const currentShot = animaticShots[currentShotIndex];
+    if (currentShot && currentShot.timecode_start_sec !== undefined) {
+      animaticMasterAudio.currentTime = currentShot.timecode_start_sec;
+    }
+
+    animaticMasterAudio.ontimeupdate = () => {
+      if (!isPlaying || !animaticMasterAudio) return;
+      const curTime = animaticMasterAudio.currentTime;
+      const totalDur = animaticMasterAudio.duration || (currentStoryboard.master_audio_duration_sec || 30);
+
+      // Actualizar barra de progreso
+      const percent = (curTime / totalDur) * 100;
+      const fillEl = document.getElementById('animaticProgressFill');
+      if (fillEl) fillEl.style.width = `${Math.min(100, percent)}%`;
+
+      const curMin = Math.floor(curTime / 60).toString().padStart(2, '0');
+      const curSec = Math.floor(curTime % 60).toString().padStart(2, '0');
+      const totMin = Math.floor(totalDur / 60).toString().padStart(2, '0');
+      const totSec = Math.floor(totalDur % 60).toString().padStart(2, '0');
+
+      const timeCurEl = document.getElementById('playerCurrentTime');
+      const timeTotEl = document.getElementById('playerTotalTime');
+      if (timeCurEl) timeCurEl.textContent = `${curMin}:${curSec}`;
+      if (timeTotEl) timeTotEl.textContent = `${totMin}:${totSec}`;
+
+      // Encontrar toma correspondiente al segundo actual
+      const matchIdx = animaticShots.findIndex(s => 
+        s.timecode_start_sec !== undefined && 
+        s.timecode_end_sec !== undefined && 
+        curTime >= s.timecode_start_sec && 
+        curTime < s.timecode_end_sec
+      );
+
+      if (matchIdx !== -1 && matchIdx !== currentShotIndex) {
+        displayShot(matchIdx, false);
       }
-    }, duration);
-  };
+    };
 
-  stepAnimatic();
+    animaticMasterAudio.onended = () => {
+      pauseAnimatic();
+      displayShot(0, false);
+    };
+
+    animaticMasterAudio.play().catch(err => {
+      console.warn("Autoplay bloqueado:", err);
+    });
+
+  } else {
+    // Fallback a temporizador secuencial
+    const stepAnimatic = () => {
+      if (!isPlaying) return;
+      const shot = animaticShots[currentShotIndex];
+      const duration = (shot.estimated_duration_sec || 4) * 1000;
+
+      playTimer = setTimeout(() => {
+        if (!isPlaying) return;
+        if (currentShotIndex < animaticShots.length - 1) {
+          displayShot(currentShotIndex + 1, true);
+          stepAnimatic();
+        } else {
+          pauseAnimatic();
+          displayShot(0, false);
+        }
+      }, duration);
+    };
+
+    displayShot(currentShotIndex, true);
+    stepAnimatic();
+  }
 }
 
 function pauseAnimatic() {
   isPlaying = false;
   clearTimeout(playTimer);
   document.getElementById('btnPlayPause').textContent = '▶️';
+  if (animaticMasterAudio) {
+    animaticMasterAudio.pause();
+  }
   if (synth) synth.cancel();
 }
 
 function nextShot() {
   pauseAnimatic();
   if (currentShotIndex < animaticShots.length - 1) {
-    displayShot(currentShotIndex + 1);
+    displayShot(currentShotIndex + 1, false);
+    if (animaticMasterAudio && animaticShots[currentShotIndex + 1].timecode_start_sec !== undefined) {
+      animaticMasterAudio.currentTime = animaticShots[currentShotIndex + 1].timecode_start_sec;
+    }
+  }
+}
+
+function prevShot() {
+  pauseAnimatic();
+  if (currentShotIndex > 0) {
+    displayShot(currentShotIndex - 1, false);
+    if (animaticMasterAudio && animaticShots[currentShotIndex - 1].timecode_start_sec !== undefined) {
+      animaticMasterAudio.currentTime = animaticShots[currentShotIndex - 1].timecode_start_sec;
+    }
   }
 }
 
