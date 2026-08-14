@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storyboard Studio PRO • Gemini 3.x & NotebookLM Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOPBAR -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="2" y1="7" x2="7" y2="7"></line>
+            <line x1="2" y1="17" x2="7" y2="17"></line>
+            <line x1="17" y1="17" x2="22" y2="17"></line>
+            <line x1="17" y1="7" x2="22" y2="7"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Storyboard Studio <span>PRO</span></h1>
+          <p>NotebookLM Architecture • Gemini 3.5 & 3.1 TTS Engine</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- TOKEN & COST COUNTER BADGE -->
+        <div id="tokenCostBadge" class="token-cost-badge" title="Tokens consumidos y costo estimado en USD">
+          <span class="token-icon">🪙</span>
+          <span id="tokenCountText">0 Tokens</span>
+          <span class="token-sep">•</span>
+          <span id="costValueText" class="cost-highlight">$0.0000 USD</span>
+        </div>
+
+        <!-- BOTÓN DE AUDITORÍA DE COHERENCIA -->
+        <button id="btnOpenCoherenceModal" class="btn btn-coherence" onclick="openCoherenceModal()" title="Auditar coherencia narrativa, visual y de audio con IA">
+          <span>🔍</span>
+          <span>Auditoría de Coherencia</span>
+          <span id="headerCoherenceBadge" class="score-pill-mini hidden">--/100</span>
+        </button>
+
+        <div id="apiKeyBadge" class="api-status-badge unconfigured" onclick="openSettingsModal()">
+          <span class="status-dot"></span>
+          <span class="status-text">Sin API Key</span>
+        </div>
+
+        <button class="btn btn-secondary" onclick="openSettingsModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Configuración
+        </button>
+
+        <button id="btnExportPDF" class="btn btn-secondary" onclick="exportPDF()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Exportar PDF
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN BODY: CONTROLS SIDEBAR + WORKSPACE -->
+    <div class="main-layout">
+      <!-- SIDEBAR CONTROLS (ESTILO MAGE / NOTEBOOKLM) -->
+      <aside class="controls-sidebar">
+        <div class="sidebar-header">
+          <h2>Parámetros Creativos</h2>
+          <span class="badge-tag">Harness v2.0</span>
+        </div>
+
+        <!-- 1. GUION / IDEA DE ENTRADA -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <label for="scriptInput">Premisa, Guion o Idea</label>
+            <span class="help-tooltip" title="Escribe tu historia, diálogo o idea. También puedes usar una plantilla de ejemplo.">?</span>
+          </div>
+          
+          <div class="preset-pills">
+            <button type="button" class="pill" onclick="loadPromptPreset('cyberpunk')">Comercial Cyberpunk</button>
+            <button type="button" class="pill" onclick="loadPromptPreset('thriller')">Thriller Suspense</button>
+            <button type="button" class="pill" onclick="loadPromptPreset('emotional')">Drama Emotivo</button>
+          </div>
+
+          <textarea id="scriptInput" class="custom-textarea" rows="4" placeholder="Ej: Un detective camina por un callejón lluvioso iluminado por letreros de neón parpadeantes. Encuentra un maletín misterioso con un código de luces holográficas..."></textarea>
+          
+          <!-- ETIQUETAS DE AUDIO EXPRESIVAS (AUDIO TAGS) -->
+          <div class="audio-tags-toolbar">
+            <div class="audio-tags-header">
+              <span class="audio-tags-label">🏷️ Insertar Audio Tags Expresivos:</span>
+              <span class="audio-tags-hint">Controla emociones, susurros y pausas</span>
+            </div>
+            <div class="audio-tags-chips">
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[whispers]')" title="Susurro íntimo o tenso">🤫 [whispers]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[dramatic pause]')" title="Pausa dramática de tensión">⏱️ [dramatic pause]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[slow breath]')" title="Respiración audible">😮‍💨 [slow breath]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[gasp]')" title="Asombro o sorpresa súbita">😱 [gasp]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[chuckles]')" title="Risa sarcástica o sutil">😏 [chuckles]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[sighs]')" title="Suspiro de alivio o pesadez">😔 [sighs]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[urgent shout]')" title="Grito de alerta o acción">⚡ [urgent shout]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[fast cadence]')" title="Cadencia rápida">🏃 [fast cadence]</button>
+              <button type="button" class="tag-chip" onclick="insertAudioTag('[deep resonance]')" title="Voz profunda y solemne">🎙️ [deep resonance]</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. IDIOMA DEL PROYECTO (MULTILINGÜE) -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <label for="languageSelect">🌐 Idioma de Narración & Locución</label>
+            <span class="badge-pill-tts">70+ Idiomas</span>
+          </div>
+          <select id="languageSelect" class="custom-select" onchange="onLanguageChange(this.value)">
+            <option value="es_MX" selected>🇲🇽 Español (México / Latinoamérica)</option>
+            <option value="es_ES">🇪🇸 Español (España / Castellano)</option>
+            <option value="en_US">🇺🇸 English (United States)</option>
+            <option value="en_GB">🇬🇧 English (British / UK)</option>
+            <option value="fr_FR">🇫🇷 Français (France)</option>
+            <option value="de_DE">🇩🇪 Deutsch (Deutschland)</option>
+            <option value="pt_BR">🇧🇷 Português (Brasil)</option>
+            <option value="it_IT">🇮🇹 Italiano (Italia)</option>
+            <option value="ja_JP">🇯🇵 日本語 (Japanese)</option>
+          </select>
+        </div>
+
+        <!-- 3. CONTROL DE RIGIDEZ / IMAGINACIÓN -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <label for="creativitySlider">Control de Fidelidad / Imaginación</label>
+            <span id="creativityValue" class="value-highlight">50% Equilibrado</span>
+          </div>
+          <input type="range" id="creativitySlider" min="0" max="100" value="50" step="5" class="custom-slider" oninput="updateCreativityLabel(this.value)">
+          <div class="slider-scale-labels">
+            <span>0% Estricto (Fuente)</span>
+            <span>100% Expansivo (IA)</span>
+          </div>
+        </div>
+
+        <!-- 4. FORMATO Y DURACIÓN -->
+        <div class="control-row">
+          <div class="control-group flex-1">
+            <label for="sceneCountSelect">Cantidad de Tomas</label>
+            <select id="sceneCountSelect" class="custom-select">
+              <option value="4">4 Tomas (Rápido)</option>
+              <option value="6" selected>6 Tomas (Estándar)</option>
+              <option value="8">8 Tomas (Detallado)</option>
+              <option value="12">12 Tomas (Complejo)</option>
+            </select>
+          </div>
+
+          <div class="control-group flex-1">
+            <label for="durationSelect">Duración Estimada</label>
+            <select id="durationSelect" class="custom-select">
+              <option value="15">15s (Spot Corto)</option>
+              <option value="30" selected>30s (Comercial)</option>
+              <option value="60">60s (Teaser Trailer)</option>
+              <option value="120">120s (Escena Corta)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 4. ASPECT RATIO -->
+        <div class="control-group">
+          <label>Relación de Aspecto (Aspect Ratio)</label>
+          <div class="ratio-selector" id="ratioSelector">
+            <button type="button" class="ratio-btn active" data-ratio="16:9">
+              <span class="ratio-box r-16-9"></span>
+              <span class="ratio-text">16:9</span>
+            </button>
+            <button type="button" class="ratio-btn" data-ratio="2.39:1">
+              <span class="ratio-box r-239-1"></span>
+              <span class="ratio-text">2.39:1</span>
+            </button>
+            <button type="button" class="ratio-btn" data-ratio="9:16">
+              <span class="ratio-box r-9-16"></span>
+              <span class="ratio-text">9:16</span>
+            </button>
+            <button type="button" class="ratio-btn" data-ratio="4:3">
+              <span class="ratio-box r-4-3"></span>
+              <span class="ratio-text">4:3</span>
+            </button>
+            <button type="button" class="ratio-btn" data-ratio="1:1">
+              <span class="ratio-box r-1-1"></span>
+              <span class="ratio-text">1:1</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. ESTILOS VISUALES CINEMATOGRÁFICOS -->
+        <div class="control-group">
+          <label for="stylePresetSelect">Estilo Visual Cinematográfico</label>
+          <select id="stylePresetSelect" class="custom-select" onchange="onStyleChange(this.value)">
+            <option value="cinematic_concept">🎬 Cinematic Concept Art (35mm / 8k)</option>
+            <option value="pencil_sketch">✏️ Storyboard Pencil & Charcoal Sketch</option>
+            <option value="film_noir">🕵️ Film Noir Graphic Novel (B&W Chiaroscuro)</option>
+            <option value="studio_ghibli">🎨 Studio Ghibli Hand-Painted Watercolor</option>
+            <option value="unreal_engine_3d">🕹️ Unreal Engine 5 3D Previsualization</option>
+            <option value="anime_shonen">⚡ Modern Anime / Key Animation Frame</option>
+            <option value="vintage_35mm">🎞️ Vintage 35mm Film Still (Kodak Portra)</option>
+          </select>
+          <p id="styleDescription" class="style-description-hint">
+            Estilo cinematográfico hiperdetallado con iluminación volumétrica y lentes 35mm.
+          </p>
+        </div>
+
+        <!-- 6. INTENCIÓN Y ACTUACIÓN VOCAL (GEMINI 3.1 FLASH TTS) -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <label for="voiceIntentionSelect">🎭 Actuación Vocal & Audio Tags</label>
+            <span class="badge-pill-tts">TTS 3.1</span>
+          </div>
+          <select id="voiceIntentionSelect" class="custom-select" onchange="onVoiceIntentionChange(this.value)">
+            <option value="epic_cinematic">🎬 Trailer Épico / Impacto Cinematográfico (Charon)</option>
+            <option value="tense_thriller">🕵️ Thriller Tenso / Suspenso Susurrado (Fenrir)</option>
+            <option value="emotional_warmth">❤️ Drama Humano / Cálido y Emotivo (Aoede)</option>
+            <option value="noir_detective">🥃 Film Noir / Detective Cínico (Puck)</option>
+            <option value="dynamic_action">⚡ Acción & Adrenalina / Alta Energía (Kore)</option>
+            <option value="whimsical_fantasy">✨ Fantasía & Animación / Lúdica (Aoede)</option>
+          </select>
+          <p id="voiceIntentionDescription" class="style-description-hint">
+            Voz profunda, ritmo pausado con peso dramático, pausas calculadas y presencia de trailer.
+          </p>
+        </div>
+
+        <!-- 7. CONTROLES AVANZADOS -->
+        <details class="advanced-controls">
+          <summary>Ajustes de Dirección y Negative Prompt</summary>
+          <div class="advanced-content">
+            <div class="control-group">
+              <label for="customDirectorNotes">Instrucciones del Director (Opcional)</label>
+              <input type="text" id="customDirectorNotes" class="custom-input" placeholder="Ej: Paleta esmeralda, planos lentos, lluvia constante">
+            </div>
+            <div class="control-group">
+              <label for="negativePromptInput">Negative Prompt (Evitar en imágenes)</label>
+              <input type="text" id="negativePromptInput" class="custom-input" placeholder="cartoon, text, watermark, blurry, bad anatomy">
+            </div>
+          </div>
+        </details>
+
+        <!-- BOTÓN PRINCIPAL DE GENERACIÓN -->
+        <button id="btnGenerateStoryboard" class="btn btn-primary btn-generate" onclick="generateStoryboard()">
+          <span class="btn-sparkle">✨</span>
+          <span id="btnGenText">Generar Storyboard Completo</span>
+        </button>
+      </aside>
+
+      <!-- MAIN WORKSPACE -->
+      <main class="workspace">
+        <!-- TABS BAR -->
+        <div class="workspace-tabs">
+          <button class="tab-btn active" onclick="switchTab('tabGrid')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Lienzo de Storyboard
+          </button>
+          <button class="tab-btn" onclick="switchTab('tabAnimatic')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Animatic Player (Cine)
+          </button>
+          <button class="tab-btn" onclick="switchTab('tabPodcast')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            Podcast de Dirección (Elena & Marcos • TTS 3.1)
+          </button>
+          <button class="tab-btn" onclick="switchTab('tabShotList')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            Guion Técnico
+          </button>
+        </div>
+
+        <!-- TAB 1: STORYBOARD GRID -->
+        <section id="tabGrid" class="tab-content active">
+          <!-- EMPTY STATE INITIAL -->
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon">🎬</div>
+            <h2>Tu Storyboard aparecerá aquí</h2>
+            <p>Configura tu idea en el panel izquierdo y haz clic en <strong>Generar Storyboard Completo</strong> para crear un desglose cinematográfico con arquitectura NotebookLM.</p>
+            <div class="empty-tips">
+              <div class="tip-card">
+                <span class="tip-num">1</span>
+                <div>
+                  <strong>Coherencia de Personaje</strong>
+                  <p>Fija una Hoja de Personaje Base (Anchor Sheet) y propágala secuencialmente a todas las tomas.</p>
+                </div>
+              </div>
+              <div class="tip-card">
+                <span class="tip-num">2</span>
+                <div>
+                  <strong>Audio Overview con Gemini 3.1 TTS</strong>
+                  <p>Voces de alta fidelidad con Elena (Aoede) y Marcos (Puck) debatiendo tus planos.</p>
+                </div>
+              </div>
+              <div class="tip-card">
+                <span class="tip-num">3</span>
+                <div>
+                  <strong>Auditoría y Costos en Tiempo Real</strong>
+                  <p>Métricas de coherencia (0-100) y contador exacto de tokens y costo en USD.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROJECT HEADER (VISIBLE WHEN GENERATED) -->
+          <div id="projectHeader" class="project-header hidden">
+            <div class="project-title-row">
+              <div>
+                <span id="projectGenreTag" class="genre-tag">Thriller</span>
+                <h2 id="projectTitle">Título del Proyecto</h2>
+                <p id="projectLogline" class="project-logline">Logline de la historia...</p>
+              </div>
+              <div class="project-meta-pills">
+                <span id="metaDurationPill" class="meta-pill">⏱️ 30s</span>
+                <span id="metaShotsPill" class="meta-pill">🎥 6 Tomas</span>
+                <span id="metaStylePill" class="meta-pill">🎨 Concept Art</span>
+                <span id="metaRatioPill" class="meta-pill">📐 16:9</span>
+                <span id="metaCostPill" class="meta-pill cost-pill">🪙 $0.0000 USD</span>
+              </div>
+            </div>
+
+            <!-- BARRA DE ACCIÓN DE COHERENCIA SECUENCIAL -->
+            <div class="coherence-action-bar">
+              <div class="coherence-info-left">
+                <div class="pipeline-title">
+                  <span class="pipeline-dot"></span>
+                  <strong>Pipeline de Coherencia Secuencial (Character Anchor + K-1 Chain)</strong>
+                </div>
+                <p class="pipeline-desc">El sistema renderiza automáticamente en cadena: fija primero la hoja de personaje y usa cada fotograma previo como guía de luz y vestuario.</p>
+              </div>
+              <div class="coherence-buttons-right">
+                <button id="btnGenerateAnchor" class="btn btn-secondary btn-sm" onclick="generateCharacterAnchor()">
+                  ★ Generar Anchor Sheet
+                </button>
+                <button id="btnRenderSequence" class="btn btn-primary" onclick="renderSequentialPipeline()">
+                  ⚡ Renderizar Secuencia Coherente
+                </button>
+              </div>
+            </div>
+
+            <!-- BARRA DE PROGRESO DE RENDERIZADO SECUENCIAL -->
+            <div id="sequenceProgressContainer" class="sequence-progress-box hidden">
+              <div class="seq-progress-header">
+                <span id="seqProgressLabel">Renderizando Secuencia: Toma 1 de 6...</span>
+                <span id="seqProgressPercent">16%</span>
+              </div>
+              <div class="seq-progress-bar">
+                <div id="seqProgressFill" class="seq-progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- CHARACTER ANCHOR SHEET CARD (COLLAPSIBLE) -->
+            <div id="characterAnchorCard" class="character-anchor-card hidden">
+              <div class="anchor-card-header">
+                <div class="anchor-badge">★ HOJA DE PERSONAJE BASE (CHARACTER ANCHOR)</div>
+                <span class="anchor-tag">Referencia Inmutable para Tomas 1..N</span>
+              </div>
+              <div class="anchor-card-body">
+                <div class="anchor-img-box">
+                  <img id="characterAnchorImg" src="" alt="Character Anchor Sheet">
+                </div>
+                <div class="anchor-text-box">
+                  <h4>Biblia y Rasgos Inmutables:</h4>
+                  <ul id="characterBibleList" class="cb-list"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SHOTS GRID -->
+          <div id="shotsGrid" class="shots-grid hidden"></div>
+        </section>
+
+        <!-- TAB 2: ANIMATIC PLAYER -->
+        <section id="tabAnimatic" class="tab-content">
+          <div class="animatic-container">
+            <div class="animatic-top-bar">
+              <div class="animatic-title-box">
+                <span class="animatic-tag">Animatic Cinema Player</span>
+                <span id="animaticRatioBadge" class="meta-pill">📐 16:9</span>
+              </div>
+              <div class="animatic-ratio-switch">
+                <span class="ratio-switch-label">Formato de Pantalla:</span>
+                <button type="button" class="animatic-ratio-btn active" data-player-ratio="16:9" onclick="setPlayerAspectRatio('16:9')">16:9 Widescreen</button>
+                <button type="button" class="animatic-ratio-btn" data-player-ratio="9:16" onclick="setPlayerAspectRatio('9:16')">📱 9:16 Vertical (Reels/TikTok)</button>
+                <button type="button" class="animatic-ratio-btn" data-player-ratio="2.39:1" onclick="setPlayerAspectRatio('2.39:1')">2.39:1 Cinemascope</button>
+                <button type="button" class="animatic-ratio-btn" data-player-ratio="4:3" onclick="setPlayerAspectRatio('4:3')">4:3 TV</button>
+                <button type="button" class="animatic-ratio-btn" data-player-ratio="1:1" onclick="setPlayerAspectRatio('1:1')">1:1 Cuadrado</button>
+              </div>
+            </div>
+
+            <div class="cinema-screen ratio-16-9" id="cinemaScreen">
+              <div class="cinema-image-wrapper">
+                <img id="animaticImage" src="" alt="Animatic Shot" class="animatic-img">
+                <div class="shot-overlay-badge">
+                  <span id="animaticShotNumber">Toma #1</span> • <span id="animaticShotType">Plano General</span>
+                </div>
+              </div>
+              
+              <!-- SUBTITLE OVERLAY -->
+              <div class="cinema-subtitles" id="cinemaSubtitles">
+                <p id="animaticDialogue">"Diálogo o locución..."</p>
+                <span id="animaticActionHint" class="action-hint">Acción visual de la escena</span>
+              </div>
+            </div>
+
+            <!-- PLAYER CONTROLS -->
+            <div class="player-controls-bar">
+              <div class="player-buttons">
+                <button class="player-btn" onclick="prevShot()" title="Toma anterior">⏮️</button>
+                <button id="btnPlayPause" class="player-btn btn-play" onclick="togglePlayAnimatic()" title="Reproducir / Pausar">▶️</button>
+                <button class="player-btn" onclick="nextShot()" title="Siguiente toma">⏭️</button>
+                <button class="player-btn" onclick="toggleVoiceover()" id="btnToggleAudio" title="Activar/Desactivar Voz en Off">🔊 Locución TTS Activada</button>
+              </div>
+
+              <div class="player-progress-container">
+                <div class="player-progress-bar" id="animaticProgressBar">
+                  <div class="player-progress-fill" id="animaticProgressFill"></div>
+                </div>
+                <div class="player-time-display">
+                  <span id="playerCurrentTime">00:00</span> / <span id="playerTotalTime">00:30</span>
+                </div>
+              </div>
+
+              <div class="player-shot-timeline" id="shotTimelineSegments"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: DIRECTOR PODCAST (AUDIO OVERVIEW CON GEMINI 3.1 TTS) -->
+        <section id="tabPodcast" class="tab-content">
+          <div class="podcast-container">
+            <div class="podcast-header-card">
+              <div class="podcast-cover-art">
+                <div class="podcast-mic-icon">🎙️</div>
+                <div class="podcast-hosts-avatars">
+                  <span class="host-badge elena" title="Elena (Aoede) - Directora de Fotografía">E</span>
+                  <span class="host-badge marcos" title="Marcos (Puck) - Guionista Principal">M</span>
+                </div>
+              </div>
+
+              <div class="podcast-info">
+                <div class="podcast-tag">Audio Overview • Gemini 3.1 Flash TTS (Aoede & Puck)</div>
+                <h2 id="podcastTitle">Análisis Creativo del Storyboard</h2>
+                <p id="podcastSummary">Sesión de análisis crítico entre Elena (Directora Visual) y Marcos (Guionista Principal) sobre el ritmo, iluminación y planos clave.</p>
+                
+                <div class="podcast-actions">
+                  <button id="btnGeneratePodcast" class="btn btn-primary" onclick="generatePodcast()">
+                    ⚡ Generar Guion Podcast (Elena & Marcos)
+                  </button>
+                  <button id="btnSynthesizeMultiSpeaker" class="btn btn-secondary" onclick="synthesizeNativeMultiSpeakerAudio()" disabled title="Sintetiza el diálogo completo en una sola solicitud a Gemini 3.1 Flash TTS">
+                    🎙️ Síntesis Multi-Hablante Nativa (Single Call)
+                  </button>
+                  <button id="btnSynthesizeFullAudio" class="btn btn-secondary" onclick="synthesizeFullPodcastAudio()" disabled>
+                    📻 Síntesis Turno a Turno
+                  </button>
+                  <button id="btnPlayFullPodcast" class="btn btn-secondary" onclick="togglePlayFullPodcast()" disabled>
+                    ▶️ Reproducir Episodio
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- KEY TAKEAWAYS -->
+            <div id="podcastTakeawaysBox" class="takeaways-box hidden">
+              <h3>🎯 Puntos Clave de la Sesión:</h3>
+              <ul id="podcastTakeawaysList"></ul>
+            </div>
+
+            <!-- PODCAST INTERACTIVE TRANSCRIPT -->
+            <div class="transcript-section">
+              <div class="transcript-header-row">
+                <h3>Transcripción Interactiva (Elena: Aoede • Marcos: Puck)</h3>
+                <span id="podcastCostBadge" class="token-cost-badge-sm">🪙 $0.0000 USD</span>
+              </div>
+              <div id="podcastTranscriptList" class="transcript-list">
+                <div class="empty-transcript-hint">
+                  Haz clic en "Generar Audio Overview" para crear la conversación de dirección con arquitectura NotebookLM.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: SHOT LIST TÉCNICA -->
+        <section id="tabShotList" class="tab-content">
+          <div class="shot-list-table-container">
+            <table class="shot-table" id="shotTable">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th style="width: 140px;">Tipo de Plano</th>
+                  <th style="width: 160px;">Cámara y Movimiento</th>
+                  <th>Acción Visual & Sujeto</th>
+                  <th>Iluminación / Atmósfera</th>
+                  <th>Diálogo / Locución (TTS)</th>
+                  <th style="width: 70px;">Duración</th>
+                </tr>
+              </thead>
+              <tbody id="shotTableBody">
+                <tr>
+                  <td colspan="7" class="text-center">Genera un storyboard para ver el desglose técnico de rodaje.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- MODAL DE AUDITORÍA DE COHERENCIA (AI INSPECTOR) -->
+    <div id="coherenceModal" class="modal-backdrop hidden">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <span class="modal-icon-badge">🔍</span>
+            <div>
+              <h3>Auditoría de Coherencia & Calidad de Producción</h3>
+              <p class="modal-subtitle">Evaluación cuantitativa integral con Gemini 3.5 Flash</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" onclick="closeCoherenceModal()">✕</button>
+        </div>
+
+        <div class="modal-body coherence-modal-body">
+          <!-- SCORE OVERALL GAUGE -->
+          <div class="coherence-overview-card">
+            <div class="gauge-box">
+              <div class="radial-score" id="coherenceRadialScore">--</div>
+              <div class="gauge-label">PUNTUACIÓN GLOBAL</div>
+            </div>
+            <div class="score-breakdown-grid">
+              <div class="metric-meter-box">
+                <div class="meter-label-row">
+                  <span>Flujo Narrativo & Ritmo</span>
+                  <strong id="scoreNarrative">--/100</strong>
+                </div>
+                <div class="meter-bar"><div id="barNarrative" class="meter-fill" style="width: 0%;"></div></div>
+              </div>
+
+              <div class="metric-meter-box">
+                <div class="meter-label-row">
+                  <span>Consistencia de Personaje</span>
+                  <strong id="scoreCharacter">--/100</strong>
+                </div>
+                <div class="meter-bar"><div id="barCharacter" class="meter-fill" style="width: 0%;"></div></div>
+              </div>
+
+              <div class="metric-meter-box">
+                <div class="meter-label-row">
+                  <span>Continuidad de Estilo Visual</span>
+                  <strong id="scoreVisual">--/100</strong>
+                </div>
+                <div class="meter-bar"><div id="barVisual" class="meter-fill" style="width: 0%;"></div></div>
+              </div>
+
+              <div class="metric-meter-box">
+                <div class="meter-label-row">
+                  <span>Calidad Acústica & Diálogos</span>
+                  <strong id="scoreAudio">--/100</strong>
+                </div>
+                <div class="meter-bar"><div id="barAudio" class="meter-fill" style="width: 0%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PACING & DETAILED SECTIONS -->
+          <div class="coherence-details-grid">
+            <div class="eval-card strengths-card">
+              <h4>✅ Fortalezas y Aciertos</h4>
+              <ul id="evalStrengthsList"></ul>
+            </div>
+
+            <div class="eval-card issues-card">
+              <h4>⚠️ Puntos Críticos y Desvíos</h4>
+              <ul id="evalIssuesList"></ul>
+            </div>
+          </div>
+
+          <div class="eval-card recommendations-card">
+            <h4>🎬 Recomendaciones del Director de Continuidad</h4>
+            <ul id="evalRecsList"></ul>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeCoherenceModal()">Cerrar</button>
+          <button class="btn btn-primary" onclick="runCoherenceAudit()">⚡ Re-evaluar Coherencia</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <h3>Configuración de API Keys & Modelos</h3>
+          </div>
+          <button class="modal-close-btn" onclick="closeSettingsModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-desc">
+            Configura tu clave de acceso a <strong>Google Gemini API</strong> para habilitar la generación de storyboards con <strong>Gemini 3.5 Flash</strong>, renderizado visual nativo con <strong>Gemini 3.1 Flash Image</strong> y síntesis de voz con <strong>Gemini 3.1 Flash TTS</strong>.
+          </p>
+
+          <div class="form-group">
+            <label for="apiKeyInput">Google Gemini API Key</label>
+            <div class="input-with-action">
+              <input type="password" id="apiKeyInput" class="custom-input" placeholder="AIzaSy...">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="togglePasswordVisibility('apiKeyInput')">👁️</button>
+            </div>
+            <span class="field-hint">
+              Consigue tu clave en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>.
+            </span>
+          </div>
+
+          <div class="pricing-info-box">
+            <h4>💰 Estimador de Costos Activo:</h4>
+            <ul>
+              <li><strong>Gemini 3.5 Flash (Texto):</strong> $0.075 / 1M input • $0.30 / 1M output</li>
+              <li><strong>Gemini 3.1 Flash Image:</strong> $0.020 / imagen</li>
+              <li><strong>Gemini 3.1 Flash TTS:</strong> $0.0005 / 1,000 caracteres</li>
+            </ul>
+          </div>
+
+          <div id="testConnectionStatus" class="connection-status-box hidden">
+            <span id="connStatusIcon">⏳</span>
+            <span id="connStatusText">Probando conexión...</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="testApiKey()">🔍 Probar Conexión</button>
+          <div class="modal-footer-right">
+            <button class="btn btn-secondary" onclick="clearApiKey()">Borrar Clave</button>
+            <button class="btn btn-primary" onclick="saveApiKey()">Guardar y Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/settings.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/podcast.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
