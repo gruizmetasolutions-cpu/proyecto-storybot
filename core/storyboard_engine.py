@@ -4,6 +4,31 @@ import config
 from core.gemini_client import gemini_service
 from core.token_tracker import TokenTracker, TokenUsage
 
+class StoryboardShotOutput(BaseModel):
+    shot_number: int = Field(description="Número correlativo de la toma (1, 2, 3...)")
+    shot_title: str = Field(description="Título corto y expresivo del plano/toma")
+    shot_type: str = Field(description="Tipo de plano cinematográfico detallado")
+    camera_movement: str = Field(description="Movimiento o ángulo de cámara preciso")
+    visual_action: str = Field(description="Descripción visual hiperdetallada de lo que ocurre en el cuadro")
+    lighting_and_atmosphere: str = Field(description="Iluminación profesional y atmósfera sensorial")
+    dialogue_or_voiceover: str = Field(description="Diálogo o locución expresiva con tags de audio integrados")
+    acting_intention: str = Field(description="Directiva de dirección actoral y tono emocional")
+    voice_cast: str = Field(default="narrator_epic", description="Identificador de voz recomendada")
+    speaker_label: str = Field(default="Narrador", description="Nombre o rol del hablante")
+    sound_effects_and_music: str = Field(description="Diseño sonoro detallado")
+    estimated_duration_sec: float = Field(description="Duración estimada del plano en segundos")
+    visual_prompt_optimized: str = Field(description="Prompt en inglés hiperdetallado para Gemini 3.1 Flash Image")
+
+class StoryboardProjectOutput(BaseModel):
+    title: str = Field(description="Título cinematográfico impactante del proyecto")
+    logline: str = Field(description="Logline o premisa de una sola oración")
+    synopsis: str = Field(description="Sinopsis narrativa completa de la pieza audiovisual")
+    genre_and_tone: str = Field(description="Género y tono dramático")
+    visual_style: str = Field(description="Estilo visual y cinematográfico general asignado")
+    target_duration_seconds: int = Field(description="Duración total estimada en segundos")
+    character_bibles: List[str] = Field(description="Guía de consistencia de personajes principales")
+    shots: List[StoryboardShotOutput] = Field(description="Lista ordenada y secuencial de todos los planos")
+
 class StoryboardShot(BaseModel):
     shot_number: int = Field(description="Número correlativo de la toma (1, 2, 3...)")
     shot_title: str = Field(description="Título corto y expresivo del plano/toma")
@@ -40,6 +65,10 @@ class StoryboardProject(BaseModel):
     master_audio_speakers: Optional[List[str]] = Field(default=None, description="Voces asignadas en la pista master")
     shots: List[StoryboardShot] = Field(description="Lista ordenada y secuencial de todos los planos del storyboard")
     token_usage: Optional[TokenUsage] = Field(default=None, description="Métricas de consumo de tokens y costo del proyecto")
+
+class ScriptPremiseOutput(BaseModel):
+    generated_premise: str = Field(description="Premisa cinematográfica estructurada de 2 a 3 párrafos lista para el storyboard")
+    suggested_title: str = Field(description="Título cinematográfico sugerido")
 
 class PremiseAssistResult(BaseModel):
     generated_premise: str = Field(description="Premisa cinematográfica estructurada lista para el storyboard")
@@ -116,16 +145,33 @@ NIVEL DE CREATIVIDAD: {int(creativity_scale * 100)}%
 
 Genera la respuesta estructurada en formato JSON con 'generated_premise' y 'suggested_title'."""
 
-        result, usage = gemini_service.generate_structured_with_usage(
-            prompt=user_prompt,
-            response_schema=PremiseAssistResult,
-            system_instruction=system_instruction,
-            temperature=temp,
-            api_key_override=api_key_override
-        )
-        result.token_usage = usage
-        result.selected_tags = selected_tags
-        return result
+        try:
+            gemini_out, usage = gemini_service.generate_structured_with_usage(
+                prompt=user_prompt,
+                response_schema=ScriptPremiseOutput,
+                system_instruction=system_instruction,
+                temperature=temp,
+                api_key_override=api_key_override
+            )
+            return PremiseAssistResult(
+                generated_premise=gemini_out.generated_premise,
+                suggested_title=gemini_out.suggested_title,
+                selected_tags=selected_tags,
+                token_usage=usage
+            )
+        except Exception as e:
+            if allow_demo_fallback:
+                print(f"Fallback en ScriptAgent debido a error de API: {e}")
+                demo_title = "CÓDIGO DE SOMBRAS"
+                premise = f"En medio de una noche tensa, un protagonista enfrentado al misterio descubre un código prohibido en un maletín hermético. Las sombras conspiran a su alrededor mientras la cuenta regresiva comienza a correr..."
+                usage = TokenTracker.estimate_from_text(prompt_text=tags_text, completion_text=premise)
+                return PremiseAssistResult(
+                    generated_premise=premise,
+                    suggested_title=demo_title,
+                    selected_tags=selected_tags,
+                    token_usage=usage
+                )
+            raise e
 
 class StoryboardEngine:
     @staticmethod
@@ -219,9 +265,9 @@ MATERIAL / GUION FUENTE DEL USUARIO:
 
 Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}, con descripciones hiperdetalladas, directivas de actuación vocal y exactamente {scene_count} planos."""
 
-        result, usage = gemini_service.generate_structured_with_usage(
+        parsed_out, usage = gemini_service.generate_structured_with_usage(
             prompt=user_prompt,
-            response_schema=StoryboardProject,
+            response_schema=StoryboardProjectOutput,
             system_instruction=system_instruction,
             temperature=temp,
             api_key_override=api_key_override
@@ -229,17 +275,45 @@ Genera la estructura JSON completa respetando el esquema Pydantic en {lang_name}
         
         # Calcular marcas de tiempo iniciales acumulativas
         cum_time = 0.0
-        for shot in result.shots:
-            dur = shot.estimated_duration_sec if shot.estimated_duration_sec > 0 else round(target_duration_sec / scene_count, 1)
-            shot.timecode_start_sec = round(cum_time, 2)
-            shot.timecode_end_sec = round(cum_time + dur, 2)
+        shots_list = []
+        for shot_out in parsed_out.shots:
+            dur = shot_out.estimated_duration_sec if shot_out.estimated_duration_sec > 0 else round(target_duration_sec / scene_count, 1)
+            t_start = round(cum_time, 2)
+            t_end = round(cum_time + dur, 2)
             cum_time += dur
 
-        result.token_usage = usage
-        result.aspect_ratio = aspect_ratio
-        result.voice_intention = voice_intention_key
-        result.language_code = language_code
-        return result
+            shots_list.append(StoryboardShot(
+                shot_number=shot_out.shot_number,
+                shot_title=shot_out.shot_title,
+                shot_type=shot_out.shot_type,
+                camera_movement=shot_out.camera_movement,
+                visual_action=shot_out.visual_action,
+                lighting_and_atmosphere=shot_out.lighting_and_atmosphere,
+                dialogue_or_voiceover=shot_out.dialogue_or_voiceover,
+                acting_intention=shot_out.acting_intention,
+                voice_cast=shot_out.voice_cast,
+                speaker_label=shot_out.speaker_label,
+                sound_effects_and_music=shot_out.sound_effects_and_music,
+                estimated_duration_sec=dur,
+                timecode_start_sec=t_start,
+                timecode_end_sec=t_end,
+                visual_prompt_optimized=shot_out.visual_prompt_optimized
+            ))
+
+        return StoryboardProject(
+            title=parsed_out.title,
+            logline=parsed_out.logline,
+            synopsis=parsed_out.synopsis,
+            genre_and_tone=parsed_out.genre_and_tone,
+            visual_style=parsed_out.visual_style or style_name,
+            aspect_ratio=aspect_ratio,
+            voice_intention=voice_intention_key,
+            language_code=language_code,
+            target_duration_seconds=parsed_out.target_duration_seconds or target_duration_sec,
+            character_bibles=parsed_out.character_bibles or [],
+            shots=shots_list,
+            token_usage=usage
+        )
 
     @staticmethod
     def generate_demo_storyboard(

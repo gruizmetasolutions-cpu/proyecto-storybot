@@ -5,6 +5,18 @@ from core.storyboard_engine import StoryboardProject
 from core.token_tracker import TokenTracker, TokenUsage
 import config
 
+class DialogueTurnOutput(BaseModel):
+    speaker: str = Field(description="Nombre del locutor: 'Elena' (Directora Visual) o 'Marcos' (Guionista Principal)")
+    speaker_role: str = Field(description="Rol del locutor: 'Directora de Fotografía y Realización' o 'Guionista y Consultor Narrativo'")
+    tone: str = Field(description="Emoción y tono del turno: e.g. 'Entusiasmada', 'Reflexivo', 'Curiosa', 'Enfático', 'Intrigado'")
+    text: str = Field(description="Texto del diálogo hablado por este locutor, escrito con cadencia natural, ritmo fluido y estilo conversacional de podcast.")
+
+class DirectorPodcastOutput(BaseModel):
+    episode_title: str = Field(description="Título atractivo del episodio de podcast de dirección")
+    summary: str = Field(description="Resumen ejecutivo del análisis creativo realizado en la sesión")
+    key_takeaways: List[str] = Field(description="Puntos clave discutidos sobre la narrativa y el estilo visual")
+    dialogue: List[DialogueTurnOutput] = Field(description="Secuencia cronológica de turnos de diálogo entre Elena y Marcos")
+
 class DialogueTurn(BaseModel):
     speaker: str = Field(description="Nombre del locutor: 'Elena' (Directora Visual) o 'Marcos' (Guionista Principal)")
     speaker_role: str = Field(description="Rol del locutor: 'Directora de Fotografía y Realización' o 'Guionista y Consultor Narrativo'")
@@ -95,9 +107,9 @@ DETALLE DE LAS TOMAS:
 
 El episodio debe tener entre 8 y 14 turnos de diálogo bien balanceados entre Elena y Marcos, cubriendo la apertura, los momentos cumbre y una conclusión inspiradora."""
 
-        podcast_result, usage2 = gemini_service.generate_structured_with_usage(
+        podcast_out, usage2 = gemini_service.generate_structured_with_usage(
             prompt=step2_prompt,
-            response_schema=DirectorPodcast,
+            response_schema=DirectorPodcastOutput,
             system_instruction=step2_system_instruction,
             temperature=0.8,
             api_key_override=api_key_override
@@ -105,12 +117,28 @@ El episodio debe tener entre 8 y 14 turnos de diálogo bien balanceados entre El
 
         total_tokens = usage1.total_tokens + usage2.total_tokens
         combined_cost = usage1.estimated_cost_usd + usage2.estimated_cost_usd
-        podcast_result.token_usage = TokenUsage(
-            prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
-            completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
-            total_tokens=total_tokens,
-            estimated_cost_usd=round(combined_cost, 5),
-            formatted_cost=f"${combined_cost:.4f} USD"
+        
+        dialogue_turns = [
+            DialogueTurn(
+                speaker=d.speaker,
+                speaker_role=d.speaker_role,
+                tone=d.tone,
+                text=d.text
+            ) for d in podcast_out.dialogue
+        ]
+
+        podcast_result = DirectorPodcast(
+            episode_title=podcast_out.episode_title,
+            summary=podcast_out.summary,
+            key_takeaways=podcast_out.key_takeaways,
+            dialogue=dialogue_turns,
+            token_usage=TokenUsage(
+                prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
+                completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
+                total_tokens=total_tokens,
+                estimated_cost_usd=round(combined_cost, 5),
+                formatted_cost=f"${combined_cost:.4f} USD"
+            )
         )
 
         return podcast_result

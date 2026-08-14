@@ -75,90 +75,90 @@
         </div>
 
         <!-- 1. MATRIZ DE ETIQUETAS CREATIVAS & GUION -->
-        <div class="control-group">
+        <div class="control-group" role="region" aria-label="Matriz de Etiquetas Creativas y Guion">
           <div class="control-label-row">
-            <label>🎯 Matriz de Etiquetas Creativas</label>
+            <span class="control-label-text">🎯 Matriz de Etiquetas Creativas</span>
             <span class="badge-pill-tts">Asistente IA</span>
           </div>
 
           <details class="tag-matrix-details" open>
             <summary class="tag-matrix-summary">Seleccionar Etiquetas para la Historia</summary>
-            <div class="tag-matrix-container">
+            <div class="tag-matrix-container" role="group" aria-label="Categorías de etiquetas creativas">
               <!-- GÉNEROS -->
               <div class="matrix-category">
-                <span class="cat-title">🎬 Género:</span>
-                <div class="matrix-chips" id="matrixGenres">
-                  <button type="button" class="matrix-chip active" data-cat="genres" data-val="Cyberpunk Neo-Noir" onclick="toggleMatrixTag(this)">🏙️ Cyberpunk</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Thriller Psicológico" onclick="toggleMatrixTag(this)">🕵️ Thriller</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Sci-Fi Espacial" onclick="toggleMatrixTag(this)">🚀 Sci-Fi</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Fantasía Oscura" onclick="toggleMatrixTag(this)">⚔️ Fantasía</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Terror Gótico" onclick="toggleMatrixTag(this)">🕯️ Terror</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Drama Íntimo" onclick="toggleMatrixTag(this)">💔 Drama</button>
-                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Acción & Adrenalina" onclick="toggleMatrixTag(this)">💥 Acción</button>
+                <span class="cat-title" id="catLabelGenres">🎬 Género:</span>
+                <div class="matrix-chips" id="matrixGenres" role="group" aria-labelledby="catLabelGenres">
+                  <button type="button" class="matrix-chip active" data-cat="genres" data-val="Cyberpunk Neo-Noir" aria-pressed="true" onclick="toggleMatrixTag(this)">🏙️ Cyberpunk</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Thriller Psicológico" aria-pressed="false" onclick="toggleMatrixTag(this)">🕵️ Thriller</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Sci-Fi Espacial" aria-pressed="false" onclick="toggleMatrixTag(this)">🚀 Sci-Fi</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Fantasía Oscura" aria-pressed="false" onclick="toggleMatrixTag(this)">⚔️ Fantasía</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Terror Gótico" aria-pressed="false" onclick="toggleMatrixTag(this)">🕯️ Terror</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Drama Íntimo" aria-pressed="false" onclick="toggleMatrixTag(this)">💔 Drama</button>
+                  <button type="button" class="matrix-chip" data-cat="genres" data-val="Acción & Adrenalina" aria-pressed="false" onclick="toggleMatrixTag(this)">💥 Acción</button>
                 </div>
               </div>
 
               <!-- PROTAGONISTAS -->
               <div class="matrix-category">
-                <span class="cat-title">👤 Protagonista:</span>
-                <div class="matrix-chips" id="matrixProtagonists">
-                  <button type="button" class="matrix-chip active" data-cat="protagonists" data-val="Detective Cansado" onclick="toggleMatrixTag(this)">🧥 Detective</button>
-                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Hacker Rebelde" onclick="toggleMatrixTag(this)">💻 Hacker</button>
-                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Astronauta Solitario" onclick="toggleMatrixTag(this)">👨‍🚀 Astronauta</button>
-                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Científica Visionaria" onclick="toggleMatrixTag(this)">🔬 Científica</button>
-                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Agente Encubierto" onclick="toggleMatrixTag(this)">🕶️ Espía</button>
-                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Androide Sintético" onclick="toggleMatrixTag(this)">🤖 Androide</button>
+                <span class="cat-title" id="catLabelProtag">👤 Protagonista:</span>
+                <div class="matrix-chips" id="matrixProtagonists" role="group" aria-labelledby="catLabelProtag">
+                  <button type="button" class="matrix-chip active" data-cat="protagonists" data-val="Detective Cansado" aria-pressed="true" onclick="toggleMatrixTag(this)">🧥 Detective</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Hacker Rebelde" aria-pressed="false" onclick="toggleMatrixTag(this)">💻 Hacker</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Astronauta Solitario" aria-pressed="false" onclick="toggleMatrixTag(this)">👨‍🚀 Astronauta</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Científica Visionaria" aria-pressed="false" onclick="toggleMatrixTag(this)">🔬 Científica</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Agente Encubierto" aria-pressed="false" onclick="toggleMatrixTag(this)">🕶️ Espía</button>
+                  <button type="button" class="matrix-chip" data-cat="protagonists" data-val="Androide Sintético" aria-pressed="false" onclick="toggleMatrixTag(this)">🤖 Androide</button>
                 </div>
               </div>
 
               <!-- DETONANTES -->
               <div class="matrix-category">
-                <span class="cat-title">⚡ Conflicto / Detonante:</span>
-                <div class="matrix-chips" id="matrixConflicts">
-                  <button type="button" class="matrix-chip active" data-cat="conflicts" data-val="Maletín con Código Prohibido" onclick="toggleMatrixTag(this)">💼 Maletín Secreto</button>
-                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Señal Alienígena Inexplicable" onclick="toggleMatrixTag(this)">📡 Señal Alien</button>
-                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Traición Interna Inesperada" onclick="toggleMatrixTag(this)">🗡️ Traición</button>
-                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Cuenta Regresiva Mortal" onclick="toggleMatrixTag(this)">⏳ Cuenta Regresiva</button>
-                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="IA Fuera de Control" onclick="toggleMatrixTag(this)">🧠 IA Rebelde</button>
+                <span class="cat-title" id="catLabelConflict">⚡ Conflicto / Detonante:</span>
+                <div class="matrix-chips" id="matrixConflicts" role="group" aria-labelledby="catLabelConflict">
+                  <button type="button" class="matrix-chip active" data-cat="conflicts" data-val="Maletín con Código Prohibido" aria-pressed="true" onclick="toggleMatrixTag(this)">💼 Maletín Secreto</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Señal Alienígena Inexplicable" aria-pressed="false" onclick="toggleMatrixTag(this)">📡 Señal Alien</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Traición Interna Inesperada" aria-pressed="false" onclick="toggleMatrixTag(this)">🗡️ Traición</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="Cuenta Regresiva Mortal" aria-pressed="false" onclick="toggleMatrixTag(this)">⏳ Cuenta Regresiva</button>
+                  <button type="button" class="matrix-chip" data-cat="conflicts" data-val="IA Fuera de Control" aria-pressed="false" onclick="toggleMatrixTag(this)">🧠 IA Rebelde</button>
                 </div>
               </div>
 
               <!-- ATMÓSFERAS -->
               <div class="matrix-category">
-                <span class="cat-title">🌌 Atmósfera:</span>
-                <div class="matrix-chips" id="matrixAtmospheres">
-                  <button type="button" class="matrix-chip active" data-cat="atmospheres" data-val="Neo-Tokyo Lluvioso" onclick="toggleMatrixTag(this)">🌧️ Neo-Tokyo</button>
-                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Cabaña en Ventisca" onclick="toggleMatrixTag(this)">❄️ Cabaña Nieve</button>
-                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Nave Abandonada" onclick="toggleMatrixTag(this)">🛸 Nave Deriva</button>
-                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Túneles Clandestinos" onclick="toggleMatrixTag(this)">🔦 Subsuelo</button>
-                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Páramo Desértico" onclick="toggleMatrixTag(this)">🏜️ Páramo</button>
+                <span class="cat-title" id="catLabelAtmosphere">🌌 Atmósfera:</span>
+                <div class="matrix-chips" id="matrixAtmospheres" role="group" aria-labelledby="catLabelAtmosphere">
+                  <button type="button" class="matrix-chip active" data-cat="atmospheres" data-val="Neo-Tokyo Lluvioso" aria-pressed="true" onclick="toggleMatrixTag(this)">🌧️ Neo-Tokyo</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Cabaña en Ventisca" aria-pressed="false" onclick="toggleMatrixTag(this)">❄️ Cabaña Nieve</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Nave Abandonada" aria-pressed="false" onclick="toggleMatrixTag(this)">🛸 Nave Deriva</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Túneles Clandestinos" aria-pressed="false" onclick="toggleMatrixTag(this)">🔦 Subsuelo</button>
+                  <button type="button" class="matrix-chip" data-cat="atmospheres" data-val="Páramo Desértico" aria-pressed="false" onclick="toggleMatrixTag(this)">🏜️ Páramo</button>
                 </div>
               </div>
 
               <!-- TONO -->
               <div class="matrix-category">
-                <span class="cat-title">🎭 Tono:</span>
-                <div class="matrix-chips" id="matrixTones">
-                  <button type="button" class="matrix-chip active" data-cat="tones" data-val="Tenso y Claustrofóbico" onclick="toggleMatrixTag(this)">😰 Tenso</button>
-                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Adrenalina Pura" onclick="toggleMatrixTag(this)">⚡ Adrenalina</button>
-                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Poético y Melancólico" onclick="toggleMatrixTag(this)">🎻 Melancólico</button>
-                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Épico y Triunfal" onclick="toggleMatrixTag(this)">🎺 Épico</button>
+                <span class="cat-title" id="catLabelTone">🎭 Tono:</span>
+                <div class="matrix-chips" id="matrixTones" role="group" aria-labelledby="catLabelTone">
+                  <button type="button" class="matrix-chip active" data-cat="tones" data-val="Tenso y Claustrofóbico" aria-pressed="true" onclick="toggleMatrixTag(this)">😰 Tenso</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Adrenalina Pura" aria-pressed="false" onclick="toggleMatrixTag(this)">⚡ Adrenalina</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Poético y Melancólico" aria-pressed="false" onclick="toggleMatrixTag(this)">🎻 Melancólico</button>
+                  <button type="button" class="matrix-chip" data-cat="tones" data-val="Épico y Triunfal" aria-pressed="false" onclick="toggleMatrixTag(this)">🎺 Épico</button>
                 </div>
               </div>
 
               <!-- BOTÓN ASISTENTE -->
-              <button type="button" id="btnAssistPremise" class="btn btn-assist-ai" onclick="assistPremiseWithAI()">
+              <button type="button" id="btnAssistPremise" class="btn btn-assist-ai" aria-label="Crear premisa con el agente de Inteligencia Artificial" onclick="assistPremiseWithAI()">
                 ✨ Crear Premisa con Agente IA (Gemini 3.5)
               </button>
             </div>
           </details>
 
           <div class="control-label-row" style="margin-top: 10px;">
-            <label for="scriptInput">Guion o Premisa Cinematográfica</label>
+            <label for="scriptInput" class="control-label-text">Guion o Premisa Cinematográfica</label>
             <span class="help-tooltip" title="Puedes editar libremente el texto generado o escribir tu propia idea.">?</span>
           </div>
           
-          <textarea id="scriptInput" class="custom-textarea" rows="4" placeholder="Selecciona etiquetas arriba y presiona 'Crear Premisa con IA', o escribe directamente tu guion aquí..."></textarea>
+          <textarea id="scriptInput" class="custom-textarea" rows="4" placeholder="Selecciona etiquetas arriba y presiona 'Crear Premisa con IA', o escribe directamente tu guion aquí..." aria-label="Texto de la premisa cinematográfica"></textarea>
           
           <!-- ETIQUETAS DE AUDIO EXPRESIVAS (AUDIO TAGS) -->
           <div class="audio-tags-toolbar">

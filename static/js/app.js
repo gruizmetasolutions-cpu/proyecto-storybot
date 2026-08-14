@@ -52,8 +52,12 @@ function toggleMatrixTag(btn) {
   if (!cat || !val) return;
 
   const parent = btn.parentElement;
-  parent.querySelectorAll('.matrix-chip').forEach(chip => chip.classList.remove('active'));
+  parent.querySelectorAll('.matrix-chip').forEach(chip => {
+    chip.classList.remove('active');
+    chip.setAttribute('aria-pressed', 'false');
+  });
   btn.classList.add('active');
+  btn.setAttribute('aria-pressed', 'true');
 
   selectedMatrixTags[cat] = val;
 }

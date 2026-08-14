@@ -5,6 +5,17 @@ from core.gemini_client import gemini_service
 from core.storyboard_engine import StoryboardProject
 from core.token_tracker import TokenTracker, TokenUsage
 
+class CoherenceEvalOutput(BaseModel):
+    overall_score: int = Field(description="Puntuación global de coherencia y calidad de producción de 0 a 100")
+    narrative_flow_score: int = Field(description="Puntuación de progresión dramática, causalidad y ritmo narrativo de 0 a 100")
+    character_consistency_score: int = Field(description="Puntuación de fidelidad y preservación de rasgos de personajes de 0 a 100")
+    visual_style_continuity_score: int = Field(description="Puntuación de armonía visual, iluminación y paleta de 0 a 100")
+    audio_dialogue_quality_score: int = Field(description="Puntuación de calidad de diálogos, locución y sonido de 0 a 100")
+    pacing_assessment: str = Field(description="Evaluación del tempo y distribución temporal entre planos")
+    strengths: List[str] = Field(description="Principales aciertos creativos y de continuidad identificados")
+    critical_issues: List[str] = Field(description="Inconsistencias o puntos de mejora detectados")
+    director_recommendations: List[str] = Field(description="Recomendaciones técnicas del DoP/Director para elevar la producción")
+
 class CoherenceMetrics(BaseModel):
     overall_score: int = Field(description="Puntuación global de coherencia y calidad de producción de 0 a 100")
     narrative_flow_score: int = Field(description="Puntuación de progresión dramática, causalidad y ritmo narrativo de 0 a 100")
@@ -77,15 +88,25 @@ Genera el reporte de métricas con calificaciones precisas y recomendaciones pro
         system_instruction = "Eres un Auditor Senior de Guion y Continuidad Visual de estudios cinematográficos (Script Supervisor & Continuity Director)."
 
         try:
-            parsed, usage = gemini_service.generate_structured_with_usage(
+            parsed_out, usage = gemini_service.generate_structured_with_usage(
                 prompt=eval_prompt,
-                response_schema=CoherenceMetrics,
+                response_schema=CoherenceEvalOutput,
                 system_instruction=system_instruction,
                 temperature=0.3,
                 api_key_override=api_key_override
             )
-            parsed.token_usage = usage
-            return parsed
+            return CoherenceMetrics(
+                overall_score=parsed_out.overall_score,
+                narrative_flow_score=parsed_out.narrative_flow_score,
+                character_consistency_score=parsed_out.character_consistency_score,
+                visual_style_continuity_score=parsed_out.visual_style_continuity_score,
+                audio_dialogue_quality_score=parsed_out.audio_dialogue_quality_score,
+                pacing_assessment=parsed_out.pacing_assessment,
+                strengths=parsed_out.strengths,
+                critical_issues=parsed_out.critical_issues,
+                director_recommendations=parsed_out.director_recommendations,
+                token_usage=usage
+            )
         except Exception as e:
             print(f"Aviso en evaluación con Gemini: {e}")
             if allow_demo_fallback:
